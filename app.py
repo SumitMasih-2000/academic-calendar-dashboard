@@ -1,11 +1,12 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 from streamlit_calendar import calendar
+import plotly.express as px
+from datetime import datetime
 
-# ---------------------------------------------------
+# -----------------------------------
 # PAGE CONFIG
-# ---------------------------------------------------
+# -----------------------------------
 
 st.set_page_config(
     page_title="Academic Calendar Dashboard",
@@ -13,99 +14,94 @@ st.set_page_config(
     layout="wide"
 )
 
-# ---------------------------------------------------
-# APPLE STYLE
-# ---------------------------------------------------
+# -----------------------------------
+# APPLE THEME CSS
+# -----------------------------------
 
 st.markdown("""
 <style>
 
-.stApp{
-    background-color:#F5F5F7;
+.main {
+    background-color:#f5f5f7;
 }
 
 [data-testid="stSidebar"]{
     background-color:white;
 }
 
-div[data-testid="metric-container"]{
+.kpi{
     background:white;
-    border-radius:12px;
     padding:15px;
-    box-shadow:0px 2px 10px rgba(0,0,0,0.08);
-}
-
-h1,h2,h3{
-    color:#1d1d1f;
+    border-radius:12px;
+    box-shadow:0px 2px 8px rgba(0,0,0,0.08);
 }
 
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------------------------------------------
+# -----------------------------------
 # LOAD DATA
-# ---------------------------------------------------
+# -----------------------------------
 
 @st.cache_data
 def load_data():
-    return pd.read_excel(
-        "Sample _data.xlsx",
+    df = pd.read_excel(
+        "Sample_data.xlsx",
         sheet_name="Dataset"
     )
+    return df
 
 df = load_data()
 
-# ---------------------------------------------------
-# DATE CONVERSION
-# ---------------------------------------------------
+# -----------------------------------
+# DATE CLEANING
+# -----------------------------------
 
-def convert_date(date_text):
+year = 2025
 
-    if pd.isna(date_text):
-        return pd.NaT
+def clean_date(x):
+
+    if pd.isna(x):
+        return None
+
+    x = str(x).lower()
+
+    x = x.replace("st","")
+    x = x.replace("nd","")
+    x = x.replace("rd","")
+    x = x.replace("th","")
 
     try:
-        cleaned = str(date_text)
-
-        for suffix in ["st","nd","rd","th"]:
-            cleaned = cleaned.replace(suffix,"")
-
         return pd.to_datetime(
-            cleaned + " 2025",
-            errors="coerce"
+            f"{x} {year}",
+            format="%d %B %Y"
         )
-
     except:
         return pd.NaT
 
 
-df["Start"] = df["Start date"].apply(convert_date)
-df["End"] = df["Closing date"].apply(convert_date)
+df["Start"] = df["Start date"].apply(clean_date)
+df["End"] = df["Closing date"].apply(clean_date)
 
-# ---------------------------------------------------
+# -----------------------------------
 # SIDEBAR
-# ---------------------------------------------------
+# -----------------------------------
 
 st.sidebar.title("Filters")
 
 university = st.sidebar.multiselect(
     "University",
-    sorted(df["University "].dropna().unique())
+    df["University "].unique()
 )
 
 program = st.sidebar.multiselect(
     "Program",
-    sorted(df["Program"].dropna().unique())
+    df["Program"].unique()
 )
 
 trainer = st.sidebar.multiselect(
     "Trainer",
-    sorted(df["Mapped Trainers"].dropna().unique())
-)
-
-delivery = st.sidebar.multiselect(
-    "Delivery Mode",
-    sorted(df["Delivery mode"].dropna().unique())
+    df["Mapped Trainers"].dropna().unique()
 )
 
 filtered = df.copy()
@@ -125,66 +121,52 @@ if trainer:
         filtered["Mapped Trainers"].isin(trainer)
     ]
 
-if delivery:
-    filtered = filtered[
-        filtered["Delivery mode"].isin(delivery)
-    ]
+# -----------------------------------
+# KPI SECTION
+# -----------------------------------
 
-# ---------------------------------------------------
-# TITLE
-# ---------------------------------------------------
+c1,c2,c3,c4 = st.columns(4)
 
-st.title("📅 Academic Calendar Dashboard")
-
-# ---------------------------------------------------
-# KPI CARDS
-# ---------------------------------------------------
-
-col1,col2,col3,col4 = st.columns(4)
-
-with col1:
+with c1:
     st.metric(
         "Universities",
         filtered["University "].nunique()
     )
 
-with col2:
+with c2:
     st.metric(
         "Programs",
         filtered["Program"].nunique()
     )
 
-with col3:
+with c3:
     st.metric(
         "Students",
-        int(filtered["No of students"].sum())
+        filtered["No of students"].sum()
     )
 
-with col4:
+with c4:
     st.metric(
         "Trainers Required",
-        int(filtered["Trainers required"].sum())
+        filtered["Trainers required"].sum()
     )
 
-st.markdown("---")
+st.divider()
 
-# ---------------------------------------------------
+# -----------------------------------
 # CALENDAR EVENTS
-# ---------------------------------------------------
+# -----------------------------------
 
 events = []
 
 for _, row in filtered.iterrows():
 
-    if pd.isna(row["Start"]):
-        continue
-
     color = "#007AFF"
 
-    if str(row["Delivery mode"]).lower() == "online":
+    if row["Delivery mode"] == "Online":
         color = "#34C759"
 
-    elif str(row["Delivery mode"]).lower() == "offline":
+    elif row["Delivery mode"] == "Offline":
         color = "#007AFF"
 
     else:
@@ -193,27 +175,23 @@ for _, row in filtered.iterrows():
     events.append(
         {
             "title":
-                f"{row['Program']} - "
+                f"{row['Program']} | "
                 f"{row['University ']}",
 
             "start":
                 row["Start"].strftime("%Y-%m-%d"),
 
             "end":
-                row["End"].strftime("%Y-%m-%d")
-                if pd.notna(row["End"])
-                else row["Start"].strftime("%Y-%m-%d"),
+                row["End"].strftime("%Y-%m-%d"),
 
             "color":
                 color
         }
     )
 
-# ---------------------------------------------------
-# CALENDAR
-# ---------------------------------------------------
-
-st.subheader("Training Schedule")
+# -----------------------------------
+# CALENDAR OPTIONS
+# -----------------------------------
 
 calendar_options = {
     "initialView":"dayGridMonth",
@@ -226,33 +204,32 @@ calendar_options = {
 
     "editable":True,
     "selectable":True,
-    "nowIndicator":True,
     "height":800
 }
+
+st.subheader("📅 Academic Delivery Calendar")
 
 calendar(
     events=events,
     options=calendar_options
 )
 
-st.markdown("---")
-
-# ---------------------------------------------------
+# -----------------------------------
 # CHARTS
-# ---------------------------------------------------
+# -----------------------------------
+
+st.divider()
 
 col1,col2 = st.columns(2)
 
 with col1:
 
-    students_chart = (
-        filtered.groupby("Program")["No of students"]
-        .sum()
-        .reset_index()
-    )
-
     fig = px.bar(
-        students_chart,
+        filtered.groupby("Program")
+        ["No of students"]
+        .sum()
+        .reset_index(),
+
         x="Program",
         y="No of students",
         title="Students by Program"
@@ -269,7 +246,7 @@ with col2:
         filtered,
         names="Delivery mode",
         values="No of students",
-        title="Delivery Mode Distribution"
+        title="Delivery Mode"
     )
 
     st.plotly_chart(
@@ -277,31 +254,9 @@ with col2:
         use_container_width=True
     )
 
-# ---------------------------------------------------
-# UNIVERSITY CHART
-# ---------------------------------------------------
-
-uni_chart = (
-    filtered.groupby("University ")["No of students"]
-    .sum()
-    .reset_index()
-)
-
-fig3 = px.bar(
-    uni_chart,
-    x="University ",
-    y="No of students",
-    title="Students by University"
-)
-
-st.plotly_chart(
-    fig3,
-    use_container_width=True
-)
-
-# ---------------------------------------------------
-# DATA TABLE
-# ---------------------------------------------------
+# -----------------------------------
+# TABLE
+# -----------------------------------
 
 st.subheader("Schedule Details")
 
@@ -310,15 +265,14 @@ st.dataframe(
     use_container_width=True
 )
 
-# ---------------------------------------------------
-# DOWNLOAD
-# ---------------------------------------------------
+# -----------------------------------
+# EXPORT
+# -----------------------------------
 
 csv = filtered.to_csv(index=False)
 
 st.download_button(
-    label="⬇ Download Filtered Data",
-    data=csv,
-    file_name="academic_schedule.csv",
-    mime="text/csv"
+    "Download Filtered Data",
+    csv,
+    file_name="academic_schedule.csv"
 )
