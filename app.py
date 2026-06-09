@@ -1,160 +1,127 @@
+# training-calendar-dashboard
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 from streamlit_calendar import calendar
+from datetime import datetime
 import os
+import re
 
 # =====================================================
-# PAGE CONFIG
+# 1. PAGE LAYOUT CONFIGURATION
 # =====================================================
-
 st.set_page_config(
     page_title="Academic Operations Dashboard",
     page_icon="🎓",
     layout="wide"
 )
 
-# =====================================================
-# THEME
-# =====================================================
-
+# Premium executive high-contrast custom dashboard presentation styles
 st.markdown("""
 <style>
-
-.stApp{
-    background:#F8FAFC;
+.stApp { background: #F8FAFC; }
+[data-testid="stSidebar"] { background: #0F172A; }
+[data-testid="stSidebar"] * { color: white !important; }
+[data-testid="stSidebar"] div[data-baseweb="select"] * { color: black !important; }
+div[data-testid="metric-container"] {
+    background: white;
+    padding: 18px;
+    border-radius: 15px;
+    border-left: 5px solid #2563EB;
+    box-shadow: 0 4px 12px rgba(0,0,0,.08);
 }
-
-[data-testid="stSidebar"]{
-    background:#0F172A;
-}
-
-[data-testid="stSidebar"] *{
-    color:white;
-}
-
-div[data-testid="metric-container"]{
-    background:white;
-    padding:18px;
-    border-radius:15px;
-    border-left:5px solid #2563EB;
-    box-shadow:0 4px 12px rgba(0,0,0,.08);
-}
-
-.fc-event{
-    border:none !important;
-    border-radius:8px !important;
-}
-
+.fc-event { border:none !important; border-radius:8px !important; }
 </style>
 """, unsafe_allow_html=True)
 
 # =====================================================
-# LOAD DATA
+# 2. DATA INGESTION MATRIX
 # =====================================================
-
 @st.cache_data
 def load_data():
-
-    files = [
-        f for f in os.listdir()
-        if f.endswith(".xlsx") or f.endswith(".csv")
-    ]
-
+    files = [f for f in os.listdir() if f.endswith(".xlsx") or f.endswith(".csv")]
     if not files:
-        st.error("No Excel/CSV file found.")
+        st.error("❌ Data Engine Failure: No Excel/CSV dataset discovered in the root application directory.")
         st.stop()
-
+    
     file_name = files[0]
-
     if file_name.endswith(".csv"):
         df = pd.read_csv(file_name)
     else:
         df = pd.read_excel(file_name)
-
     return df, file_name
 
-
 df, file_name = load_data()
-
-st.sidebar.success(f"Loaded: {file_name}")
+st.sidebar.success(f"📂 Active Source Matrix: {file_name}")
 
 # =====================================================
-# CLEAN DATA
+# 3. COMPREHENSIVE TEXT CLEANING
 # =====================================================
-
 df.columns = df.columns.str.strip()
 
 for col in df.select_dtypes(include="object").columns:
-    df[col] = (
-        df[col]
-        .fillna("Not Assigned")
-        .astype(str)
-        .str.strip()
-    )
+    df[col] = df[col].fillna("Not Assigned").astype(str).str.strip()
+
+# Standardize values for numeric calculation processing blocks
+if "No of students" in df.columns:
+    df["No of students"] = pd.to_numeric(df["No of students"], errors="coerce").fillna(0).astype(int)
 
 # =====================================================
-# DATE CONVERTER
+# 4. ADVANCED SYSTEM DATE PARSER Engine (Handles text string days like '1st', '31st')
 # =====================================================
-
-def convert_date(x):
-
-    if pd.isna(x):
+def convert_date(x, fallback_day=1, default_month=5, default_year=2024):
+    if pd.isna(x) or str(x).strip() == "" or str(x).lower().strip() == "nan":
         return pd.NaT
-
-    x = str(x)
-
-    for suffix in ["st", "nd", "rd", "th"]:
-        x = x.replace(suffix, "")
-
+        
+    clean_str = str(x).lower().strip()
+    
+    # Strip day suffixes (st, nd, rd, th) securely 
+    day_digits = re.search(r'\d+', clean_str)
+    day = int(day_digits.group()) if day_digits else fallback_day
+    
+    # Process written alphabetic month blocks accurately
+    month = default_month
+    if "april" in clean_str: month = 4
+    elif "may" in clean_str: month = 5
+    elif "june" in clean_str: month = 6
+    
     try:
-        return pd.to_datetime(
-            x + " 2025",
-            errors="coerce"
-        )
+        return datetime(default_year, month, day)
     except:
         return pd.NaT
 
-
 if "Start date" in df.columns:
-    df["Start"] = df["Start date"].apply(convert_date)
+    df["Start"] = df["Start date"].apply(lambda x: convert_date(x, fallback_day=1))
+else:
+    df["Start"] = pd.NaT
 
 if "Closing date" in df.columns:
-    df["End"] = df["Closing date"].apply(convert_date)
+    df["End"] = df["Closing date"].apply(lambda x: convert_date(x, fallback_day=31))
 else:
     df["End"] = df["Start"]
 
-# =====================================================
-# CASCADING FILTERS
-# =====================================================
+# Structural chronology check fallback logic
+invalid_end_mask = (df["End"] < df["Start"]) | pd.isna(df["End"])
+df.loc[invalid_end_mask, "End"] = df.loc[invalid_end_mask, "Start"] + pd.Timedelta(days=7)
 
-st.sidebar.title("🎯 Dashboard Filters")
+# =====================================================
+# 5. AUTOMATED TRUE CASCADING FILTERS WINDOW
+# =====================================================
+st.sidebar.title("🎯 Cascading Filters Matrix")
 
+exclude_cols = ["Start", "End", "Start date", "Closing date", "No of students", "Delivery hrs", "No of hours", "No. of batches", "Trainers required"]
+filter_columns = [c for c in df.columns if c not in exclude_cols]
+
+# Prioritize University as top master node structure layout tracking block
+if "University" in filter_columns:
+    filter_columns.remove("University")
+    filter_columns = ["University"] + filter_columns
+
+# Instantiating the sequential row reduction framework
 filtered = df.copy()
 
-exclude_cols = ["Start", "End"]
-
-filter_columns = [
-    c for c in df.columns
-    if c not in exclude_cols
-]
-
-# University First
-
-priority = []
-
-if "University" in filter_columns:
-    priority.append("University")
-
-remaining = [
-    c for c in filter_columns
-    if c not in priority
-]
-
-filter_columns = priority + remaining
-
 for col in filter_columns:
-
+    # Crucial change step: options dynamically shrink based on the rows left from previous selections
     available_values = sorted(
         filtered[col]
         .dropna()
@@ -162,329 +129,164 @@ for col in filter_columns:
         .unique()
         .tolist()
     )
+    
+    if not available_values:
+        available_values = ["Not Assigned"]
 
+    # Auto-select the choices safely if a master filter shrinks options to 1 single record slot
     selected = st.sidebar.multiselect(
-        f"🔽 {col}",
-        available_values,
+        f"🔽 Filter: {col}",
+        options=available_values,
         default=available_values,
-        key=col
+        key=f"cascade_{col}"
     )
-
-    filtered = filtered[
-        filtered[col]
-        .astype(str)
-        .isin(selected)
-    ]
+    
+    # Inject constraint modification immediately on current tracking data block
+    filtered = filtered[filtered[col].astype(str).isin(selected)]
 
 # =====================================================
-# SEARCH
+# 6. UNIVERSAL GLOBAL TEXT SEARCH STRATEGIES
 # =====================================================
-
-search = st.sidebar.text_input(
-    "🔍 Search Anything"
-)
-
+search = st.sidebar.text_input("🔍 Search Anything")
 if search:
-
     filtered = filtered[
         filtered.astype(str)
-        .apply(
-            lambda x:
-            x.str.contains(
-                search,
-                case=False,
-                na=False
-            )
-        )
+        .apply(lambda x: x.str.contains(search, case=False, na=False))
         .any(axis=1)
     ]
 
 # =====================================================
-# HEADER
+# 7. MAIN AREA DASHBOARD DESIGN LAYOUT
 # =====================================================
-
-st.title("🎓 Academic Operations Dashboard")
-
 st.info(
     f"""
-    📊 Records: {len(filtered)}
-    
-    🏫 Universities: {filtered['University'].nunique() if 'University' in filtered.columns else 0}
-    
-    🎓 Programs: {filtered['Program'].nunique() if 'Program' in filtered.columns else 0}
+    📊 **Active Display Focus:** {len(filtered)} Matching Cohort Records Found.
     """
 )
 
-# =====================================================
-# KPI CARDS
-# =====================================================
-
-col1,col2,col3,col4 = st.columns(4)
+# KPI Cards Presentation Grid Setup
+col1, col2, col3, col4 = st.columns(4)
 
 with col1:
-    value = (
-        filtered["University"].nunique()
-        if "University" in filtered.columns
-        else 0
-    )
-
-    st.metric(
-        "🏫 Universities",
-        value
-    )
+    uni_val = filtered['University'].nunique() if 'University' in filtered.columns else 0
+    st.metric("🏫 Active Universities", uni_val)
 
 with col2:
-    value = (
-        filtered["Program"].nunique()
-        if "Program" in filtered.columns
-        else 0
-    )
-
-    st.metric(
-        "🎓 Programs",
-        value
-    )
+    prog_val = filtered['Program'].nunique() if 'Program' in filtered.columns else 0
+    st.metric("🎓 Track Programs", prog_val)
 
 with col3:
-
-    if "No of students" in filtered.columns:
-        students = int(
-            pd.to_numeric(
-                filtered["No of students"],
-                errors="coerce"
-            ).fillna(0).sum()
-        )
-    else:
-        students = 0
-
-    st.metric(
-        "👨‍🎓 Students",
-        f"{students:,}"
-    )
+    student_sum = int(filtered["No of students"].sum()) if "No of students" in filtered.columns else 0
+    st.metric("👨‍🎓 Total Enrollees", f"{student_sum:,}")
 
 with col4:
-
-    if "Mapped Trainers" in filtered.columns:
-        trainers = filtered[
-            "Mapped Trainers"
-        ].nunique()
-    else:
-        trainers = 0
-
-    st.metric(
-        "👨‍🏫 Trainers",
-        trainers
-    )
+    trainer_val = filtered['Mapped Trainers'].nunique() if 'Mapped Trainers' in filtered.columns else 0
+    st.metric("👨‍🏫 Allocated Faculty", trainer_val)
 
 st.divider()
 
 # =====================================================
-# CALENDAR
+# 8. HIGH-CONTRAST INTERACTIVE BLUE CALENDAR COMPONENT
 # =====================================================
+st.subheader("📅 Academic Operational Scheduler Calendar")
 
-st.subheader("📅 Academic Calendar")
-
-st.markdown(
-"""
-🟢 Online &nbsp;&nbsp;
-🔵 Offline &nbsp;&nbsp;
-🟠 Hybrid
-""",
-unsafe_allow_html=True
-)
+st.markdown("""
+🟢 **Online Modality** &nbsp;&nbsp;|&nbsp;&nbsp; 
+🔵 **Offline Classrooms** &nbsp;&nbsp;|&nbsp;&nbsp; 
+🟠 **Hybrid Configurations** &nbsp;&nbsp;|&nbsp;&nbsp; 
+🟣 **Unassigned Schedules**
+""", unsafe_allow_html=True)
 
 events = []
-
-for _, row in filtered.iterrows():
-
+for idx, row in filtered.iterrows():
     if pd.isna(row["Start"]):
         continue
 
-    mode = str(
-        row.get(
-            "Delivery mode",
-            ""
-        )
-    ).lower()
-
-    if "online" in mode:
-        color = "#10B981"
-
-    elif "offline" in mode:
-        color = "#2563EB"
-
-    elif "hybrid" in mode:
-        color = "#F59E0B"
-
-    else:
-        color = "#6366F1"
+    mode = str(row.get("Delivery mode", "")).lower()
+    if "online" in mode: color = "#10B981"
+    elif "offline" in mode: color = "#2563EB"
+    elif "hybrid" in mode: color = "#F59E0B"
+    else: color = "#6366F1"
 
     title_parts = []
-
-    if "Program" in filtered.columns:
-        title_parts.append(str(row["Program"]))
-
-    if "University" in filtered.columns:
-        title_parts.append(str(row["University"]))
-
+    if "Program" in filtered.columns: title_parts.append(str(row["Program"]))
+    if "University" in filtered.columns: title_parts.append(str(row["University"]))
     title = " | ".join(title_parts)
 
-    end_date = (
-        row["End"]
-        if pd.notna(row["End"])
-        else row["Start"]
-    )
+    events.append({
+        "id": f"evt_{idx}",
+        "title": title,
+        "start": row["Start"].strftime("%Y-%m-%d"),
+        "end": (row["End"] + pd.Timedelta(days=1)).strftime("%Y-%m-%d"),
+        "backgroundColor": color,
+        "borderColor": color,
+        "textColor": "#FFFFFF"
+    })
 
-    events.append(
-        {
-            "title": title,
-            "start": row["Start"].strftime("%Y-%m-%d"),
-            "end": (
-                end_date +
-                pd.Timedelta(days=1)
-            ).strftime("%Y-%m-%d"),
-            "color": color
-        }
-    )
-
+# The dynamic key prevents calendar redraw lockups during multi-variable sidebar selection changes
 calendar(
     events=events,
     options={
-        "initialView":"dayGridMonth",
-        "height":700,
-        "headerToolbar":{
-            "left":"prev,next today",
-            "center":"title",
-            "right":"dayGridMonth,timeGridWeek,listMonth"
+        "initialView": "dayGridMonth",
+        "height": 650,
+        "navLinks": True,
+        "headerToolbar": {
+            "left": "prev,next today",
+            "center": "title",
+            "right": "dayGridMonth,timeGridWeek,listMonth"
         }
     },
-    key=f"calendar_{len(filtered)}"
+    key=f"dynamic_calendar_{len(filtered)}"
 )
 
 st.divider()
 
 # =====================================================
-# CHARTS
+# 9. GRAPHICAL STATISTICAL METRIC INSIGHTS
 # =====================================================
-
-c1,c2 = st.columns(2)
+c1, c2 = st.columns(2)
 
 with c1:
-
-    if (
-        "Program" in filtered.columns
-        and
-        "No of students" in filtered.columns
-    ):
-
-        chart_df = (
-            filtered
-            .groupby("Program")
-            ["No of students"]
-            .sum()
-            .reset_index()
-        )
-
-        fig = px.bar(
-            chart_df,
-            x="Program",
-            y="No of students",
-            title="Students by Program"
-        )
-
-        st.plotly_chart(
-            fig,
-            use_container_width=True
-        )
+    if "Program" in filtered.columns and "No of students" in filtered.columns and not filtered.empty:
+        chart_df = filtered.groupby("Program")["No of students"].sum().reset_index()
+        fig = px.bar(chart_df, x="Program", y="No of students", title="Student Volume Distribution per Program Stream", color="Program")
+        st.plotly_chart(fig, use_container_width=True)
 
 with c2:
+    if "Delivery mode" in filtered.columns and "No of students" in filtered.columns and not filtered.empty:
+        fig = px.pie(filtered, names="Delivery mode", values="No of students", hole=0.4, title="Active Mode Enrolment Ratio Setup")
+        st.plotly_chart(fig, use_container_width=True)
 
-    if (
-        "Delivery mode" in filtered.columns
-        and
-        "No of students" in filtered.columns
-    ):
+# Treemap Implementation view
+if "University" in filtered.columns and "Program" in filtered.columns and "No of students" in filtered.columns and not filtered.empty:
+    fig_tree = px.treemap(filtered, path=["University", "Program"], values="No of students", title="Institutional Structural Distribution Breakdowns")
+    st.plotly_chart(fig_tree, use_container_width=True)
 
-        fig = px.pie(
-            filtered,
-            names="Delivery mode",
-            values="No of students",
-            hole=0.4,
-            title="Delivery Mode Distribution"
-        )
-
-        st.plotly_chart(
-            fig,
-            use_container_width=True
-        )
+# Instructor Workload Data Component Chart panel
+if "Mapped Trainers" in filtered.columns and not filtered.empty:
+    trainer_df = filtered.groupby("Mapped Trainers").size().reset_index(name="Active Class Formations Count").sort_values("Active Class Formations Count", ascending=False)
+    fig_trainer = px.bar(trainer_df, x="Mapped Trainers", y="Active Class Formations Count", title="Assigned Training Faculty Cohort Loads", color="Active Class Formations Count")
+    st.plotly_chart(fig_trainer, use_container_width=True)
 
 # =====================================================
-# TREEMAP
+# 10. CLEAN AND PRECISELY ALIGNED DATA PREVIEW GRID
 # =====================================================
-
-if (
-    "University" in filtered.columns
-    and
-    "Program" in filtered.columns
-    and
-    "No of students" in filtered.columns
-):
-
-    fig = px.treemap(
-        filtered,
-        path=["University","Program"],
-        values="No of students",
-        title="University Program Structure"
-    )
-
-    st.plotly_chart(
-        fig,
-        use_container_width=True
-    )
-
-# =====================================================
-# TRAINER WORKLOAD
-# =====================================================
-
-if "Mapped Trainers" in filtered.columns:
-
-    trainer_df = (
-        filtered
-        .groupby("Mapped Trainers")
-        .size()
-        .reset_index(name="Count")
-        .sort_values(
-            "Count",
-            ascending=False
-        )
-    )
-
-    fig = px.bar(
-        trainer_df,
-        x="Mapped Trainers",
-        y="Count",
-        title="Trainer Workload"
-    )
-
-    st.plotly_chart(
-        fig,
-        use_container_width=True
-    )
-
-# =====================================================
-# DATA TABLE
-# =====================================================
-
-st.subheader("📋 Schedule Details")
+st.subheader("📋 Comprehensive Operations Registry")
 
 display_df = filtered.copy()
 
-for col in ["Start", "End"]:
-    if col in display_df.columns:
-        display_df.drop(
-            columns=[col],
-            inplace=True
-        )
+# Format timestamps to a clean text date string layout before outputting
+if "Start" in display_df.columns:
+    display_df["Start date"] = display_df["Start"].dt.strftime("%Y-%m-%d").fillna("Missing Date")
+if "Closing date" in display_df.columns:
+    display_df["Closing date"] = display_df["End"].dt.strftime("%Y-%m-%d").fillna("Missing Date")
+
+# Drop messy custom backend timestamp columns
+display_df.drop(columns=["Start", "End"], errors="ignore", inplace=True)
+
+# Enforce clean custom alignment sequence headers
+clean_sequence = [col for col in df.columns if col not in ["Start", "End"]]
+display_df = display_df[clean_sequence]
 
 st.data_editor(
     display_df,
@@ -492,17 +294,11 @@ st.data_editor(
     hide_index=True
 )
 
-# =====================================================
-# DOWNLOAD
-# =====================================================
-
-csv = display_df.to_csv(
-    index=False
-).encode("utf-8")
-
+# Data packet file download transaction mechanism pipeline
+csv_data = display_df.to_csv(index=False).encode("utf-8")
 st.download_button(
-    "📥 Download Filtered Data",
-    csv,
-    "academic_dashboard_export.csv",
-    "text/csv"
+    label="📥 Download Currently Filtered Registry Dataset (CSV Format)",
+    data=csv_data,
+    file_name=f"academic_registry_export_{datetime.now().strftime('%Y%m%d')}.csv",
+    mime="text/csv"
 )
