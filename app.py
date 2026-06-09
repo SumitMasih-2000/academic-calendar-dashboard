@@ -15,7 +15,7 @@ st.set_page_config(
 )
 
 # =====================================================
-# PROFESSIONAL CSS THEME
+# THEME
 # =====================================================
 
 st.markdown("""
@@ -38,24 +38,19 @@ div[data-testid="metric-container"]{
     padding:18px;
     border-radius:15px;
     border-left:5px solid #2563EB;
-    box-shadow:0px 4px 12px rgba(0,0,0,0.08);
-}
-
-h1,h2,h3{
-    color:#1E293B;
+    box-shadow:0 4px 12px rgba(0,0,0,.08);
 }
 
 .fc-event{
     border:none !important;
     border-radius:8px !important;
-    font-size:12px !important;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
 # =====================================================
-# LOAD FILE
+# LOAD DATA
 # =====================================================
 
 @st.cache_data
@@ -67,7 +62,7 @@ def load_data():
     ]
 
     if not files:
-        st.error("No Excel or CSV file found.")
+        st.error("No Excel/CSV file found.")
         st.stop()
 
     file_name = files[0]
@@ -99,7 +94,7 @@ for col in df.select_dtypes(include="object").columns:
     )
 
 # =====================================================
-# DATE CONVERSION
+# DATE CONVERTER
 # =====================================================
 
 def convert_date(x):
@@ -109,8 +104,8 @@ def convert_date(x):
 
     x = str(x)
 
-    for s in ["st","nd","rd","th"]:
-        x = x.replace(s,"")
+    for suffix in ["st", "nd", "rd", "th"]:
+        x = x.replace(suffix, "")
 
     try:
         return pd.to_datetime(
@@ -130,50 +125,63 @@ else:
     df["End"] = df["Start"]
 
 # =====================================================
-# SIDEBAR FILTERS
+# CASCADING FILTERS
 # =====================================================
 
-st.sidebar.title("🎯 Filters")
+st.sidebar.title("🎯 Dashboard Filters")
 
 filtered = df.copy()
 
-for col in df.columns:
+exclude_cols = ["Start", "End"]
 
-    if col not in ["Start","End"]:
+filter_columns = [
+    c for c in df.columns
+    if c not in exclude_cols
+]
 
-        try:
+# University First
 
-            values = sorted(
-                filtered[col]
-                .dropna()
-                .astype(str)
-                .unique()
-                .tolist()
-            )
+priority = []
 
-            selected = st.sidebar.multiselect(
-                f"🔽 {col}",
-                values,
-                default=values
-            )
+if "University" in filter_columns:
+    priority.append("University")
 
-            filtered = filtered[
-                filtered[col]
-                .astype(str)
-                .isin(selected)
-            ]
+remaining = [
+    c for c in filter_columns
+    if c not in priority
+]
 
-        except:
-            pass
+filter_columns = priority + remaining
+
+for col in filter_columns:
+
+    available_values = sorted(
+        filtered[col]
+        .dropna()
+        .astype(str)
+        .unique()
+        .tolist()
+    )
+
+    selected = st.sidebar.multiselect(
+        f"🔽 {col}",
+        available_values,
+        default=available_values,
+        key=col
+    )
+
+    filtered = filtered[
+        filtered[col]
+        .astype(str)
+        .isin(selected)
+    ]
 
 # =====================================================
-# SEARCH BOX
+# SEARCH
 # =====================================================
 
-st.title("🎓 Academic Operations Dashboard")
-
-search = st.text_input(
-    "🔍 Search Program / University / Trainer"
+search = st.sidebar.text_input(
+    "🔍 Search Anything"
 )
 
 if search:
@@ -184,58 +192,85 @@ if search:
             lambda x:
             x.str.contains(
                 search,
-                case=False
+                case=False,
+                na=False
             )
         )
         .any(axis=1)
     ]
 
 # =====================================================
-# KPI SECTION
+# HEADER
 # =====================================================
 
-students = 0
-universities = 0
-programs = 0
-trainers = 0
+st.title("🎓 Academic Operations Dashboard")
 
-if "No of students" in filtered.columns:
-    students = int(
-        filtered["No of students"]
-        .fillna(0)
-        .sum()
+st.info(
+    f"""
+    📊 Records: {len(filtered)}
+    
+    🏫 Universities: {filtered['University'].nunique() if 'University' in filtered.columns else 0}
+    
+    🎓 Programs: {filtered['Program'].nunique() if 'Program' in filtered.columns else 0}
+    """
+)
+
+# =====================================================
+# KPI CARDS
+# =====================================================
+
+col1,col2,col3,col4 = st.columns(4)
+
+with col1:
+    value = (
+        filtered["University"].nunique()
+        if "University" in filtered.columns
+        else 0
     )
 
-if "University" in filtered.columns:
-    universities = filtered["University"].nunique()
-
-if "Program" in filtered.columns:
-    programs = filtered["Program"].nunique()
-
-if "Mapped Trainers" in filtered.columns:
-    trainers = filtered["Mapped Trainers"].nunique()
-
-c1,c2,c3,c4 = st.columns(4)
-
-with c1:
     st.metric(
         "🏫 Universities",
-        universities
+        value
     )
 
-with c2:
+with col2:
+    value = (
+        filtered["Program"].nunique()
+        if "Program" in filtered.columns
+        else 0
+    )
+
     st.metric(
         "🎓 Programs",
-        programs
+        value
     )
 
-with c3:
+with col3:
+
+    if "No of students" in filtered.columns:
+        students = int(
+            pd.to_numeric(
+                filtered["No of students"],
+                errors="coerce"
+            ).fillna(0).sum()
+        )
+    else:
+        students = 0
+
     st.metric(
         "👨‍🎓 Students",
         f"{students:,}"
     )
 
-with c4:
+with col4:
+
+    if "Mapped Trainers" in filtered.columns:
+        trainers = filtered[
+            "Mapped Trainers"
+        ].nunique()
+    else:
+        trainers = 0
+
     st.metric(
         "👨‍🏫 Trainers",
         trainers
@@ -244,20 +279,19 @@ with c4:
 st.divider()
 
 # =====================================================
-# CALENDAR LEGEND
+# CALENDAR
 # =====================================================
 
-st.markdown("""
-### 📅 Training Calendar
+st.subheader("📅 Academic Calendar")
 
-🟢 Online &nbsp;&nbsp;&nbsp;
-🔵 Offline &nbsp;&nbsp;&nbsp;
+st.markdown(
+"""
+🟢 Online &nbsp;&nbsp;
+🔵 Offline &nbsp;&nbsp;
 🟠 Hybrid
-""")
-
-# =====================================================
-# CALENDAR EVENTS
-# =====================================================
+""",
+unsafe_allow_html=True
+)
 
 events = []
 
@@ -285,13 +319,15 @@ for _, row in filtered.iterrows():
     else:
         color = "#6366F1"
 
-    title = ""
+    title_parts = []
 
     if "Program" in filtered.columns:
-        title += str(row["Program"])
+        title_parts.append(str(row["Program"]))
 
     if "University" in filtered.columns:
-        title += f" ({row['University']})"
+        title_parts.append(str(row["University"]))
+
+    title = " | ".join(title_parts)
 
     end_date = (
         row["End"]
@@ -299,63 +335,49 @@ for _, row in filtered.iterrows():
         else row["Start"]
     )
 
-    events.append({
-
-        "title": title,
-
-        "start":
-        row["Start"].strftime("%Y-%m-%d"),
-
-        "end":
-        (
-            end_date +
-            pd.Timedelta(days=1)
-        ).strftime("%Y-%m-%d"),
-
-        "color": color
-    })
-
-calendar_options = {
-
-    "initialView":"dayGridMonth",
-
-    "headerToolbar":{
-
-        "left":"prev,next today",
-
-        "center":"title",
-
-        "right":
-        "dayGridMonth,timeGridWeek,listMonth"
-    },
-
-    "height":700
-}
+    events.append(
+        {
+            "title": title,
+            "start": row["Start"].strftime("%Y-%m-%d"),
+            "end": (
+                end_date +
+                pd.Timedelta(days=1)
+            ).strftime("%Y-%m-%d"),
+            "color": color
+        }
+    )
 
 calendar(
     events=events,
-    options=calendar_options,
+    options={
+        "initialView":"dayGridMonth",
+        "height":700,
+        "headerToolbar":{
+            "left":"prev,next today",
+            "center":"title",
+            "right":"dayGridMonth,timeGridWeek,listMonth"
+        }
+    },
     key=f"calendar_{len(filtered)}"
 )
 
 st.divider()
 
 # =====================================================
-# ANALYTICS
+# CHARTS
 # =====================================================
 
-chart1, chart2 = st.columns(2)
+c1,c2 = st.columns(2)
 
-# -----------------------------------------------------
-
-with chart1:
+with c1:
 
     if (
-        "Program" in filtered.columns and
+        "Program" in filtered.columns
+        and
         "No of students" in filtered.columns
     ):
 
-        data = (
+        chart_df = (
             filtered
             .groupby("Program")
             ["No of students"]
@@ -364,14 +386,10 @@ with chart1:
         )
 
         fig = px.bar(
-            data.sort_values(
-                "No of students",
-                ascending=False
-            ),
+            chart_df,
             x="Program",
             y="No of students",
-            title="Students by Program",
-            color_discrete_sequence=["#2563EB"]
+            title="Students by Program"
         )
 
         st.plotly_chart(
@@ -379,12 +397,11 @@ with chart1:
             use_container_width=True
         )
 
-# -----------------------------------------------------
-
-with chart2:
+with c2:
 
     if (
-        "Delivery mode" in filtered.columns and
+        "Delivery mode" in filtered.columns
+        and
         "No of students" in filtered.columns
     ):
 
@@ -392,7 +409,8 @@ with chart2:
             filtered,
             names="Delivery mode",
             values="No of students",
-            hole=0.45
+            hole=0.4,
+            title="Delivery Mode Distribution"
         )
 
         st.plotly_chart(
@@ -405,19 +423,18 @@ with chart2:
 # =====================================================
 
 if (
-    "University" in filtered.columns and
-    "Program" in filtered.columns and
+    "University" in filtered.columns
+    and
+    "Program" in filtered.columns
+    and
     "No of students" in filtered.columns
 ):
 
     fig = px.treemap(
         filtered,
-        path=[
-            "University",
-            "Program"
-        ],
+        path=["University","Program"],
         values="No of students",
-        title="University → Program Distribution"
+        title="University Program Structure"
     )
 
     st.plotly_chart(
@@ -426,7 +443,7 @@ if (
     )
 
 # =====================================================
-# TRAINER ANALYSIS
+# TRAINER WORKLOAD
 # =====================================================
 
 if "Mapped Trainers" in filtered.columns:
@@ -435,9 +452,9 @@ if "Mapped Trainers" in filtered.columns:
         filtered
         .groupby("Mapped Trainers")
         .size()
-        .reset_index(name="Programs")
+        .reset_index(name="Count")
         .sort_values(
-            "Programs",
+            "Count",
             ascending=False
         )
     )
@@ -445,7 +462,7 @@ if "Mapped Trainers" in filtered.columns:
     fig = px.bar(
         trainer_df,
         x="Mapped Trainers",
-        y="Programs",
+        y="Count",
         title="Trainer Workload"
     )
 
@@ -458,11 +475,11 @@ if "Mapped Trainers" in filtered.columns:
 # DATA TABLE
 # =====================================================
 
-st.subheader("📋 Detailed Academic Schedule")
+st.subheader("📋 Schedule Details")
 
 display_df = filtered.copy()
 
-for col in ["Start","End"]:
+for col in ["Start", "End"]:
     if col in display_df.columns:
         display_df.drop(
             columns=[col],
@@ -484,7 +501,7 @@ csv = display_df.to_csv(
 ).encode("utf-8")
 
 st.download_button(
-    "📥 Download CSV",
+    "📥 Download Filtered Data",
     csv,
     "academic_dashboard_export.csv",
     "text/csv"
