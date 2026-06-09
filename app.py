@@ -260,6 +260,10 @@ with col4:
     trainer_val = filtered['Mapped Trainers'].nunique() if 'Mapped Trainers' in filtered.columns else 0
     st.metric("👨‍🏫 Allocated Faculty", trainer_val)
 
+with col4:
+    session_count = len(filtered)
+    st.metric("📚 Total Sessions", session_count)
+
 st.divider()
 
 # =====================================================
