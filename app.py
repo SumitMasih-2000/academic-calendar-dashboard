@@ -19,18 +19,95 @@ st.set_page_config(
 # Premium executive high-contrast custom dashboard presentation styles
 st.markdown("""
 <style>
-.stApp { background: #F8FAFC; }
-[data-testid="stSidebar"] { background: #0F172A; }
-[data-testid="stSidebar"] * { color: white !important; }
-[data-testid="stSidebar"] div[data-baseweb="select"] * { color: black !important; }
+
+/* Main Background */
+.stApp {
+    background-color: #F4F7FC;
+}
+
+/* Sidebar */
+[data-testid="stSidebar"] {
+    background: #0F172A;
+}
+
+[data-testid="stSidebar"] * {
+    color: white !important;
+}
+
+/* Keep dropdown text readable */
+[data-testid="stSidebar"] div[data-baseweb="select"] * {
+    color: black !important;
+}
+
+/* KPI Cards */
 div[data-testid="metric-container"] {
     background: white;
     padding: 18px;
     border-radius: 15px;
-    border-left: 5px solid #2563EB;
-    box-shadow: 0 4px 12px rgba(0,0,0,.08);
+    border-left: 5px solid #14B8A6;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
-.fc-event { border:none !important; border-radius:8px !important; }
+
+/* Headers */
+h1, h2, h3 {
+    color: #0F172A;
+}
+
+/* Buttons */
+.stButton > button {
+    background-color: #14B8A6;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+.stButton > button:hover {
+    background-color: #0F766E;
+    color: white;
+}
+
+/* Download Button */
+.stDownloadButton > button {
+    background-color: #14B8A6;
+    color: white;
+    border-radius: 8px;
+}
+
+/* Data Editor / Tables */
+[data-testid="stDataFrame"] {
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+/* Calendar Events */
+.fc-event {
+    border: none !important;
+    border-radius: 8px !important;
+    font-weight: 600;
+    padding: 2px;
+}
+
+/* Info Boxes */
+[data-testid="stAlert"] {
+    border-radius: 12px;
+}
+
+/* Tabs */
+button[data-baseweb="tab"] {
+    font-weight: 600;
+}
+
+/* Metric Labels */
+[data-testid="metric-container"] label {
+    color: #0F172A !important;
+}
+
+/* Metric Values */
+[data-testid="metric-container"] [data-testid="stMetricValue"] {
+    color: #0F172A;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
