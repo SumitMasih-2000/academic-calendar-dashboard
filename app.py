@@ -109,7 +109,7 @@ df.loc[invalid_end_mask, "End"] = df.loc[invalid_end_mask, "Start"] + pd.Timedel
 # =====================================================
 st.sidebar.title("🎯 Cascading Filters Matrix")
 
-exclude_cols = ["Start", "End", "Start date", "Closing date", "No of students", "Delivery hrs", "No of hours", "No. of batches", "Trainers required"]
+exclude_cols = ["Start", "End", "Start date", "Closing date", "No of students", "Delivery hrs", "No. of batches", "Trainers required"]
 filter_columns = [c for c in df.columns if c not in exclude_cols]
 
 # Prioritize University as top master node structure layout tracking block
