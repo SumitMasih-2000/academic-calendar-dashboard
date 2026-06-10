@@ -114,23 +114,51 @@ button[data-baseweb="tab"] {
 # =====================================================
 # 2. DATA INGESTION MATRIX
 # =====================================================
+st.sidebar.header("📤 Upload Dataset")
+
+uploaded_file = st.sidebar.file_uploader(
+    "Choose Excel or CSV File",
+    type=["xlsx", "csv"]
+)
+
 @st.cache_data
-def load_data():
-    files = [f for f in os.listdir() if f.endswith(".xlsx") or f.endswith(".csv")]
+def load_data(uploaded_file):
+
+    # If user uploads file
+    if uploaded_file is not None:
+
+        if uploaded_file.name.endswith(".csv"):
+            df = pd.read_csv(uploaded_file)
+        else:
+            df = pd.read_excel(uploaded_file)
+
+        return df, uploaded_file.name
+
+    # Otherwise load default local file
+    files = [
+        f for f in os.listdir()
+        if f.endswith(".xlsx") or f.endswith(".csv")
+    ]
+
     if not files:
-        st.error("❌ Data Engine Failure: No Excel/CSV dataset discovered in the root application directory.")
+        st.error(
+            "❌ No Excel/CSV file found. Please upload a dataset."
+        )
         st.stop()
-    
+
     file_name = files[0]
+
     if file_name.endswith(".csv"):
         df = pd.read_csv(file_name)
     else:
         df = pd.read_excel(file_name)
+
     return df, file_name
 
-df, file_name = load_data()
-st.sidebar.success(f"📂 Active Source Matrix: {file_name}")
 
+df, file_name = load_data(uploaded_file)
+
+st.sidebar.success(f"📂 Active Source Matrix: {file_name}")
 # =====================================================
 # 3. COMPREHENSIVE TEXT CLEANING
 # =====================================================
