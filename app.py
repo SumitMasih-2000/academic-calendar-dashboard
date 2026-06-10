@@ -263,6 +263,7 @@ if "Start" in filtered.columns:
 
         # Year Filter
         years = sorted(valid_dates.dt.year.unique())
+
         selected_years = st.sidebar.multiselect(
             "Select Year",
             years,
@@ -290,15 +291,41 @@ if "Start" in filtered.columns:
             default=months_available,
             format_func=lambda x: month_names[x]
         )
-        
-        focus_year = min(selected_years) if selected_years else datetime.now().year
-        focus_month = min(selected_months) if selected_months else 1
-        calendar_focus_date = f"{focus_year}-{focus_month:02d}-01"
 
         filtered = filtered[
             filtered["Start"].dt.month.isin(selected_months)
         ]
 
+        # Default calendar focus
+        if not filtered.empty:
+            calendar_focus_date = filtered["Start"].min().strftime("%Y-%m-%d")
+        else:
+            calendar_focus_date = datetime.now().strftime("%Y-%m-%d")
+
+        # Date Range Filter
+        if not filtered.empty:
+
+            min_date = filtered["Start"].min().date()
+            max_date = filtered["Start"].max().date()
+
+            selected_range = st.sidebar.date_input(
+                "Select Date Range",
+                value=(min_date, max_date),
+                min_value=min_date,
+                max_value=max_date
+            )
+
+            if len(selected_range) == 2:
+
+                start_filter, end_filter = selected_range
+
+                filtered = filtered[
+                    (filtered["Start"].dt.date >= start_filter) &
+                    (filtered["Start"].dt.date <= end_filter)
+                ]
+
+                # Calendar jumps to selected range start
+                calendar_focus_date = start_filter.strftime("%Y-%m-%d")
         # Date Range Filter
         min_date = filtered["Start"].min().date()
         max_date = filtered["Start"].max().date()
@@ -362,12 +389,6 @@ st.markdown("""
 🔵 Offline Classrooms &nbsp;&nbsp;&nbsp; |
 🟠 Hybrid Configurations &nbsp;&nbsp;&nbsp; |
 🟣 Unassigned Schedules &nbsp;&nbsp;&nbsp; |
-
-🔵 Delhi University &nbsp;&nbsp;&nbsp; |
-🟢 Amity University &nbsp;&nbsp;&nbsp; |
-🟠 Chandigarh University &nbsp;&nbsp;&nbsp; |
-🟣 LPU &nbsp;&nbsp;&nbsp; |
-🔴 Manipal University |
 """, unsafe_allow_html=True)
 
 events = []
