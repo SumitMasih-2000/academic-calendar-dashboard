@@ -312,7 +312,8 @@ if "Start" in filtered.columns:
                 "Select Date Range",
                 value=(min_date, max_date),
                 min_value=min_date,
-                max_value=max_date
+                max_value=max_date,
+                key="date_range_filter"
             )
 
             if len(selected_range) == 2:
