@@ -441,27 +441,61 @@ for idx, row in filtered.iterrows():
     )
 
 # The dynamic key prevents calendar redraw lockups during multi-variable sidebar selection changes
-calendar(
+calendar_response = calendar(
     events=events,
     options={
-        "initialDate": calendar_focus_date,
         "initialView": "dayGridMonth",
+        "initialDate": calendar_focus_date,
         "height": 750,
-
-        "dayMaxEvents": False,
         "eventDisplay": "block",
+        "dayMaxEvents": False,
 
         "headerToolbar": {
             "left": "prev,next today",
             "center": "title",
             "right": "dayGridMonth,timeGridWeek,listMonth"
-        },
-
-        "expandRows": True,
-        "stickyHeaderDates": True
+        }
     },
     key=f"dynamic_calendar_{len(filtered)}"
 )
+st.divider()
+# ==========================================
+# EVENT CLICK DETAILS
+# ==========================================
+
+st.write(calendar_response)   # Temporary test
+
+if calendar_response and "eventClick" in calendar_response:
+
+    clicked_event = calendar_response["eventClick"]
+
+    event_id = clicked_event["event"]["id"]
+
+    idx = int(event_id.replace("evt_", ""))
+
+    row = filtered.loc[idx]
+
+    st.success(
+        f"""
+### 📋 Session Details
+
+🏫 University: {row.get('University','N/A')}
+
+🎓 Program: {row.get('Program','N/A')}
+
+📚 Course: {row.get('Course','N/A')}
+
+👨‍🏫 Trainer: {row.get('Mapped Trainers','N/A')}
+
+👨‍🎓 Students: {row.get('No of students','N/A')}
+
+📅 Start: {row['Start'].strftime('%d-%b-%Y')}
+
+📅 End: {row['End'].strftime('%d-%b-%Y')}
+
+💻 Delivery Mode: {row.get('Delivery mode','N/A')}
+"""
+    )
 
 # =====================================================
 # 9. GRAPHICAL STATISTICAL METRIC INSIGHTS
