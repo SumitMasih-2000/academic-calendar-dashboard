@@ -362,6 +362,7 @@ st.markdown("""
 🔵 Offline Classrooms &nbsp;&nbsp;&nbsp; |
 🟠 Hybrid Configurations &nbsp;&nbsp;&nbsp; |
 🟣 Unassigned Schedules &nbsp;&nbsp;&nbsp; |
+
 🔵 Delhi University &nbsp;&nbsp;&nbsp; |
 🟢 Amity University &nbsp;&nbsp;&nbsp; |
 🟠 Chandigarh University &nbsp;&nbsp;&nbsp; |
