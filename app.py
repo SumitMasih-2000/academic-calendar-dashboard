@@ -317,13 +317,7 @@ if "Start" in filtered.columns:
 # =====================================================
 # 6. UNIVERSAL GLOBAL TEXT SEARCH STRATEGIES
 # =====================================================
-search = st.sidebar.text_input("🔍 Search Anything")
-if search:
-    filtered = filtered[
-        filtered.astype(str)
-        .apply(lambda x: x.str.contains(search, case=False, na=False))
-        .any(axis=1)
-    ]
+
 
 # =====================================================
 # 7. MAIN AREA DASHBOARD DESIGN LAYOUT
@@ -361,55 +355,82 @@ st.divider()
 st.subheader("📅 Academic Operational Scheduler Calendar")
 
 st.markdown("""
-🟢 **Online Modality** &nbsp;&nbsp;|&nbsp;&nbsp; 
-🔵 **Offline Classrooms** &nbsp;&nbsp;|&nbsp;&nbsp; 
-🟠 **Hybrid Configurations** &nbsp;&nbsp;|&nbsp;&nbsp; 
-🟣 **Unassigned Schedules**
+🔵 Delhi University &nbsp;&nbsp;&nbsp;
+🟢 Amity University &nbsp;&nbsp;&nbsp;
+🟠 Chandigarh University &nbsp;&nbsp;&nbsp;
+🟣 LPU &nbsp;&nbsp;&nbsp;
+🔴 Manipal University
 """, unsafe_allow_html=True)
 
 events = []
+# University Color Mapping
+
+university_colors = {
+    "Delhi University": "#2563EB",      # Blue
+    "Amity University": "#10B981",      # Green
+    "Chandigarh University": "#F59E0B", # Orange
+    "LPU": "#8B5CF6",                   # Purple
+    "Manipal University": "#EF4444",    # Red
+}
+
+default_colors = [
+    "#2563EB",
+    "#10B981",
+    "#F59E0B",
+    "#8B5CF6",
+    "#EF4444",
+    "#EC4899",
+    "#14B8A6",
+    "#F97316",
+    "#6366F1",
+    "#84CC16"
+]
+
+# Auto assign colors to any new university
+universities = sorted(
+    filtered["University"]
+    .dropna()
+    .astype(str)
+    .unique()
+)
+
+for i, uni in enumerate(universities):
+    if uni not in university_colors:
+        university_colors[uni] = default_colors[i % len(default_colors)]
+
 for idx, row in filtered.iterrows():
+
     if pd.isna(row["Start"]):
         continue
 
-    mode = str(row.get("Delivery mode", "")).lower()
-    if "online" in mode: color = "#10B981"
-    elif "offline" in mode: color = "#2563EB"
-    elif "hybrid" in mode: color = "#F59E0B"
-    else: color = "#6366F1"
+    university = str(row.get("University", "Unknown"))
 
-    title_parts = []
-    if "Program" in filtered.columns: title_parts.append(str(row["Program"]))
-    if "University" in filtered.columns: title_parts.append(str(row["University"]))
-    title = " | ".join(title_parts)
-
-    events.append({
-        "id": f"evt_{idx}",
-        "title": title,
-        "start": row["Start"].strftime("%Y-%m-%d"),
-        "end": (row["End"] + pd.Timedelta(days=1)).strftime("%Y-%m-%d"),
-        "backgroundColor": color,
-        "borderColor": color,
-        "textColor": "#FFFFFF"
-    })
+    color = university_colors.get(
+        university,
+        "#6366F1"
+    )
 
 # The dynamic key prevents calendar redraw lockups during multi-variable sidebar selection changes
 calendar(
     events=events,
     options={
         "initialView": "dayGridMonth",
-        "height": 650,
-        "navLinks": True,
+        "height": 750,
+
+        "dayMaxEvents": False,
+        "eventDisplay": "block",
+
         "headerToolbar": {
             "left": "prev,next today",
             "center": "title",
             "right": "dayGridMonth,timeGridWeek,listMonth"
-        }
+        },
+
+        "expandRows": True,
+        "stickyHeaderDates": True
     },
     key=f"dynamic_calendar_{len(filtered)}"
 )
-
-st.divider()
 
 # =====================================================
 # 9. GRAPHICAL STATISTICAL METRIC INSIGHTS
