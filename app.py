@@ -290,6 +290,10 @@ if "Start" in filtered.columns:
             default=months_available,
             format_func=lambda x: month_names[x]
         )
+        
+        focus_year = min(selected_years) if selected_years else datetime.now().year
+        focus_month = min(selected_months) if selected_months else 1
+        calendar_focus_date = f"{focus_year}-{focus_month:02d}-01"
 
         filtered = filtered[
             filtered["Start"].dt.month.isin(selected_months)
@@ -353,8 +357,11 @@ st.divider()
 # 8. HIGH-CONTRAST INTERACTIVE BLUE CALENDAR COMPONENT
 # =====================================================
 st.subheader("📅 Academic Operational Scheduler Calendar")
-
 st.markdown("""
+🟢 Online Modality |
+🔵 Offline Classrooms |
+🟠 Hybrid Configurations |
+🟣 Unassigned Schedules
 🔵 Delhi University &nbsp;&nbsp;&nbsp;
 🟢 Amity University &nbsp;&nbsp;&nbsp;
 🟠 Chandigarh University &nbsp;&nbsp;&nbsp;
@@ -414,6 +421,7 @@ for idx, row in filtered.iterrows():
 calendar(
     events=events,
     options={
+        "initialDate": calendar_focus_date,
         "initialView": "dayGridMonth",
         "height": 750,
 
