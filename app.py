@@ -248,6 +248,71 @@ for col in filter_columns:
     
     # Inject constraint modification immediately on current tracking data block
     filtered = filtered[filtered[col].astype(str).isin(selected)]
+    # =====================================================
+# DATE FILTERING SYSTEM
+# =====================================================
+
+if "Start" in filtered.columns:
+
+    valid_dates = filtered["Start"].dropna()
+
+    if not valid_dates.empty:
+
+        st.sidebar.markdown("---")
+        st.sidebar.subheader("📅 Date Filters")
+
+        # Year Filter
+        years = sorted(valid_dates.dt.year.unique())
+        selected_years = st.sidebar.multiselect(
+            "Select Year",
+            years,
+            default=years
+        )
+
+        filtered = filtered[
+            filtered["Start"].dt.year.isin(selected_years)
+        ]
+
+        # Month Filter
+        month_names = {
+            1:"Jan",2:"Feb",3:"Mar",4:"Apr",
+            5:"May",6:"Jun",7:"Jul",8:"Aug",
+            9:"Sep",10:"Oct",11:"Nov",12:"Dec"
+        }
+
+        months_available = sorted(
+            filtered["Start"].dropna().dt.month.unique()
+        )
+
+        selected_months = st.sidebar.multiselect(
+            "Select Month",
+            options=months_available,
+            default=months_available,
+            format_func=lambda x: month_names[x]
+        )
+
+        filtered = filtered[
+            filtered["Start"].dt.month.isin(selected_months)
+        ]
+
+        # Date Range Filter
+        min_date = filtered["Start"].min().date()
+        max_date = filtered["Start"].max().date()
+
+        selected_range = st.sidebar.date_input(
+            "Select Date Range",
+            value=(min_date, max_date),
+            min_value=min_date,
+            max_value=max_date
+        )
+
+        if len(selected_range) == 2:
+            start_filter, end_filter = selected_range
+
+            filtered = filtered[
+                (filtered["Start"].dt.date >= start_filter) &
+                (filtered["Start"].dt.date <= end_filter)
+            ]
 
 # =====================================================
 # 6. UNIVERSAL GLOBAL TEXT SEARCH STRATEGIES
