@@ -11,11 +11,11 @@ import re
 # 1. PAGE LAYOUT CONFIGURATION
 # =====================================================
 st.set_page_config(
-    page_title="Academic Operations Dashboard",
-    page_icon="🎓",
-    layout="wide"
+    page_title="Academic Calendar Dashboard",
+    page_icon="📅",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
-
 # Premium executive high-contrast custom dashboard presentation styles
 st.markdown("""
 <style>
