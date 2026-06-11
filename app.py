@@ -307,7 +307,7 @@ df.loc[invalid_end_mask, "End"] = df.loc[invalid_end_mask, "Start"] + pd.Timedel
 # =====================================================
 # 5. AUTOMATED TRUE CASCADING FILTERS WINDOW
 # =====================================================
-st.sidebar.title("🎯 Cascading Filters")
+st.sidebar.title
 
 exclude_cols = ["Start", "End", "Start date", "Closing date", "No of students", "Delivery hrs", "No. of batches", "Trainers required"]
 filter_columns = [c for c in df.columns if c not in exclude_cols]
@@ -591,23 +591,26 @@ if calendar_response and "eventClick" in calendar_response:
         f"""
 ### 📋 Session Details
 
-🏫 University: {row.get('University','N/A')}
+st.success(
+    f"""
 
-🎓 Program: {row.get('Program','N/A')}
+University: {row.get('University','N/A')}
 
-📚 Course: {row.get('Course','N/A')}
+Program: {row.get('Program','N/A')}
 
-👨‍🏫 Trainer: {row.get('Mapped Trainers','N/A')}
+Course: {row.get('Course','N/A')}
 
-👨‍🎓 Students: {row.get('No of students','N/A')}
+Faculty: {row.get('Mapped Trainers','N/A')}
 
-📅 Start: {row['Start'].strftime('%d-%b-%Y')}
+Student Count: {row.get('No of students','N/A')}
 
-📅 End: {row['End'].strftime('%d-%b-%Y')}
+Start Date: {row['Start'].strftime('%d-%b-%Y')}
 
-💻 Delivery Mode: {row.get('Delivery mode','N/A')}
+End Date: {row['End'].strftime('%d-%b-%Y')}
+
+Delivery Mode: {row.get('Delivery mode','N/A')}
 """
-    )
+)
 
 # =====================================================
 # 9. GRAPHICAL STATISTICAL METRIC INSIGHTS
