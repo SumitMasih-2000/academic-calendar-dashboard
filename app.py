@@ -421,10 +421,10 @@ if "Start" in filtered.columns:
                 calendar_focus_date = start_filter.strftime("%Y-%m-%d")
         # Date Range Filter
 
-        from datetime import date
+        from datetime import datetime, date
 
 if filtered.empty:
-    calendar_focus_date = date.today().strftime("%Y-%m-%d")
+    calendar_focus_date = datetime.now().strftime("%Y-%m-%d")
 else:
     calendar_focus_date = filtered["Start"].min().strftime("%Y-%m-%d")
 
