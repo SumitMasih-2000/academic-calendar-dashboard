@@ -440,11 +440,10 @@ if len(selected_range) == 2 and not valid_dates.empty:
     calendar_focus_date = start_filter.strftime("%Y-%m-%d")
    
         # Date Range Filter
-
-        from datetime import datetime, date
+from datetime import datetime, date
 
 if filtered.empty:
-    calendar_focus_date = datetime.now().strftime("%Y-%m-%d")
+   calendar_focus_date = datetime.now().strftime("%Y-%m-%d")
 else:
     calendar_focus_date = filtered["Start"].min().strftime("%Y-%m-%d")
 
