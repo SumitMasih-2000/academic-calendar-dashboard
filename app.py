@@ -73,14 +73,54 @@ df.columns = df.columns.str.strip()
 # =====================================================
 # DATE HANDLING
 # =====================================================
-for col in ["Start date","Closing date"]:
-    if col in df.columns:
-        df[col] = pd.to_datetime(df[col], errors="coerce")
+st.sidebar.markdown("---")
+st.sidebar.subheader("Schedule Filters")
 
-df["Start"] = df.get("Start date")
-df["End"] = df.get("Closing date")
+valid_dates = filtered["Start"].dropna()
 
-filtered = df.copy()
+if not valid_dates.empty:
+
+    years = sorted(valid_dates.dt.year.unique())
+
+    selected_years = st.sidebar.multiselect(
+        "Academic Year",
+        years,
+        default=years
+    )
+
+    filtered = filtered[
+        filtered["Start"].dt.year.isin(selected_years)
+    ]
+
+    months = sorted(
+        filtered["Start"].dropna().dt.month.unique()
+    )
+
+    selected_months = st.sidebar.multiselect(
+        "Month",
+        months,
+        default=months
+    )
+
+    filtered = filtered[
+        filtered["Start"].dt.month.isin(selected_months)
+    ]
+
+    min_date = filtered["Start"].min().date()
+    max_date = filtered["Start"].max().date()
+
+    date_range = st.sidebar.date_input(
+        "Date Range",
+        value=(min_date, max_date)
+    )
+
+    if len(date_range) == 2:
+        start_filter, end_filter = date_range
+
+        filtered = filtered[
+            (filtered["Start"].dt.date >= start_filter) &
+            (filtered["Start"].dt.date <= end_filter)
+        ]
 
 # =====================================================
 # CASCADING FILTERS
@@ -111,7 +151,21 @@ for col in filter_cols:
         default=opts
     )
     filtered = filtered[filtered[col].astype(str).isin(selected)]
+    
+#MAIN AREA DASHBOARD DESIGN LAYOUT
 
+st.markdown("""
+<div style="
+background:linear-gradient(135deg,#1E3A8A,#2563EB);
+padding:20px;
+border-radius:15px;
+color:white;
+margin-bottom:20px;
+">
+<h1>Academic Operations Dashboard</h1>
+<p>Training Calendar | Faculty Allocation | Program Monitoring</p>
+</div>
+""", unsafe_allow_html=True)
 # =====================================================
 # KPI SECTION
 # =====================================================
