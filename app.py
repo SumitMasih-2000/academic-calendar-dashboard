@@ -76,7 +76,7 @@ df.columns = df.columns.str.strip()
 st.sidebar.markdown("---")
 st.sidebar.subheader("Schedule Filters")
 
-valid_dates = filtered["Start"].dropna()
+filtered = df.copy()
 
 if not valid_dates.empty:
 
