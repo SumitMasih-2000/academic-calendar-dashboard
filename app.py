@@ -74,4 +74,67 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Helper function
+# Helper function to process uploaded images safely to base64 strings
+def get_image_base64(path):
+    try:
+        with open(path, "rb") as image_file:
+            return base64.b64encode(image_file.read()).decode()
+    except Exception:
+        # Fallback to prevent code execution crash on white screen if file asset is missing
+        return ""
+
+# Convert all asset images safely to base64 strings
+main_calendar_base64 = get_image_base64("image_1134f1.png")
+course_icon_base64 = get_image_base64("image_2b21c2.png")
+trainer_icon_base64 = get_image_base64("image_2b217d.png")
+
+# -----------------------------------------------------------------------------
+# 1. EMPTY TEMPLATE SCHEMA GENERATOR
+# -----------------------------------------------------------------------------
+def get_empty_dataframe():
+    return pd.DataFrame(columns=[
+        "Task ID", "Task Name", "University", "Course", 
+        "Trainer", "Date", "Total Allocated Hours", "Completed Hours", "Remaining Hours"
+    ])
+
+# -----------------------------------------------------------------------------
+# 2. INTUITIVE SHEET DATA NORMALIZER
+# -----------------------------------------------------------------------------
+def clean_and_map_dataframe(raw_df):
+    processed_df = raw_df.copy()
+    processed_df.columns = processed_df.columns.astype(str).str.strip().str.lower()
+    
+    mapping_dictionary = {
+        'task id': ['task id', 'id', 'task_id', 'sr no', 'sr. no.', 'index'],
+        'task name': ['task name', 'task', 'title', 'event', 'assignment', 'task_name', 'name', 'todo', 'to do'],
+        'university': ['university', 'univ', 'college', 'institution', 'school', 'varsity'],
+        'course': ['course', 'subject', 'program', 'class', 'branch'],
+        'trainer': ['trainer', 'instructor', 'teacher', 'professor', 'faculty', 'dr.', 'mentor'],
+        'date': ['date', 'task date', 'due date', 'schedule date', 'timeline', 'day', 'timestamp'],
+        'total allocated hours': ['total allocated hours', 'total hours', 'allocated hours', 'hours', 'duration', 'total_hours', 'allocated_hours'],
+        'completed hours': ['completed hours', 'hours completed', 'done', 'hours done', 'completed_hours', 'hrs completed']
+    }
+    
+    final_df = pd.DataFrame()
+    
+    for standard_key, variations in mapping_dictionary.items():
+        matched_col = None
+        for col in processed_df.columns:
+            if col in variations:
+                matched_col = col
+                break
+        
+        if matched_col is not None:
+            final_df[standard_key] = processed_df[matched_col]
+        else:
+            if standard_key == 'task id':
+                final_df[standard_key] = range(1, len(processed_df) + 1)
+            elif standard_key in ['total allocated hours', 'completed hours']:
+                final_df[standard_key] = 0.0
+            elif standard_key == 'date':
+                final_df[standard_key] = datetime.today().date()
+            else:
+                final_df[standard_key] = "General"
+                
+    final_df['date'] = pd.to_datetime(final_df['date'], errors='coerce').dt.date
+    final_df
