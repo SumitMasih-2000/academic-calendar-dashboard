@@ -404,7 +404,9 @@ st.sidebar.subheader("📅 Date Filters")
 
 # Date Range Filter
 
-if filtered.empty:
+valid_dates = filtered["Start"].dropna()
+
+if valid_dates.empty:
 
     min_date = datetime.now().date()
     max_date = datetime.now().date()
@@ -413,10 +415,10 @@ if filtered.empty:
 
 else:
 
-    min_date = filtered["Start"].min().date()
-    max_date = filtered["Start"].max().date()
+    min_date = valid_dates.min().date()
+    max_date = valid_dates.max().date()
 
-    calendar_focus_date = filtered["Start"].min().strftime("%Y-%m-%d")
+    calendar_focus_date = valid_dates.min().strftime("%Y-%m-%d")
 
 selected_range = st.sidebar.date_input(
     "Select Date Range",
@@ -426,7 +428,7 @@ selected_range = st.sidebar.date_input(
     key="date_range_filter"
 )
 
-if len(selected_range) == 2 and not filtered.empty:
+if len(selected_range) == 2 and not valid_dates.empty:
 
     start_filter, end_filter = selected_range
 
