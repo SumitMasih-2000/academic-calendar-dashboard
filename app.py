@@ -4,7 +4,6 @@ import plotly.express as px
 from streamlit_calendar import calendar
 from datetime import datetime
 import base64
-import os
 
 # Set wide layout configuration and theme colors
 st.set_page_config(page_title="Academic Task & Hours Tracker", layout="wide")
@@ -29,7 +28,7 @@ st.markdown("""
     }
     .main-title { font-size: 32px; font-weight: 700; color: #1E293B; margin: 0; }
     .sub-title { font-size: 15px; color: #64748B; margin-top: 5px; margin-bottom: 25px; }
-    .section-header { font-size: 20px; font-weight: 600; color: #1E293B; margin-top: 20px; margin-bottom: 15px; }
+    .section-header { font-size: 20px; font-weight: 600; color: #1E293B; margin-top: 20px; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
     
     /* Filter Grid Custom Styling */
     .filter-header { 
@@ -54,7 +53,7 @@ st.markdown("""
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
         margin-bottom: 14px;
     }
-    .todo-title { font-size: 17px; font-weight: 600; color: #0F172A; margin: 0 0 6px 0; }
+    .todo-title { font-size: 17px; font-weight: 600; color: #0F172A; margin: 0 0 6px 0; display: flex; align-items: center; gap: 8px; }
     .todo-meta { font-size: 13px; color: #64748B; margin: 0 0 8px 0; }
     .todo-status { font-size: 13px; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 6px; }
     
@@ -148,33 +147,25 @@ def clean_and_map_dataframe(raw_df):
     return final_df
 
 # -----------------------------------------------------------------------------
-# AUTOMATED LIVE FILE WATCHER SYSTEM
+# STANDARD DRAG-AND-DROP FILE UPLOADER SIDEBAR (No Emojis)
 # -----------------------------------------------------------------------------
-st.sidebar.header("📁 Live Data Management")
-EXCEL_FILE_PATH = "academic_schedule.xlsx" 
-file_path_input = st.sidebar.text_input("Local Excel File Path:", value=EXCEL_FILE_PATH)
+st.sidebar.markdown('### <i class="fa-solid fa-folder-open" style="color:#0EA5E9; margin-right:8px;"></i>Data Management', unsafe_allow_html=True)
+uploaded_file = st.sidebar.file_uploader("Upload Excel File (.xlsx)", type=["xlsx"])
 
 is_data_loaded = False
 
-if os.path.exists(file_path_input):
+if uploaded_file is not None:
     try:
-        last_modified_timestamp = os.path.getmtime(file_path_input)
-        
-        @st.cache_data(ttl=1)
-        def fetch_live_data(path, mod_time):
-            raw_excel_df = pd.read_excel(path)
-            return clean_and_map_dataframe(raw_excel_df)
-            
-        df = fetch_live_data(file_path_input, last_modified_timestamp)
-        st.sidebar.success("🟢 Live Tracking Mode Active!")
-        st.sidebar.caption(f"Synced: {datetime.fromtimestamp(last_modified_timestamp).strftime('%H:%M:%S')}")
+        raw_excel_df = pd.read_excel(uploaded_file)
+        df = clean_and_map_dataframe(raw_excel_df)
+        st.sidebar.success("Loaded and synced dynamic dataset successfully!")
         is_data_loaded = True
     except Exception as e:
-        st.sidebar.error(f"Error accessing file system: {e}")
+        st.sidebar.error(f"Mapping pipeline mismatch error: {e}")
         df = get_empty_dataframe()
 else:
     df = get_empty_dataframe()
-    st.sidebar.warning(f"⚠️ Target file missing at: '{file_path_input}'")
+    st.sidebar.info("Waiting for Excel data upload.")
 
 # -----------------------------------------------------------------------------
 # BRANDING HEADERS WITH ASSET ICON
@@ -187,14 +178,14 @@ if main_calendar_base64:
     </div>
     """, unsafe_allow_html=True)
 else:
-    st.markdown('<div class="title-container"><div class="main-title">📅 Academic Calendar & Hours Dashboard</div></div>', unsafe_allow_html=True)
+    st.markdown('<div class="title-container"><div class="main-title"><i class="fa-solid fa-calendar-days" style="color:#0EA5E9; margin-right:12px;"></i>Academic Calendar & Hours Dashboard</div></div>', unsafe_allow_html=True)
 
-st.markdown('<div class="sub-title">This dashboard automatically updates live whenever changes are saved directly to your local Excel file.</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-title">Drop your course Excel sheets to dynamically generate task calendars, manage timelines, and audit hours metrics.</div>', unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# FILTER WORKSPACE INTERFACE
+# FILTER WORKSPACE INTERFACE (No Emojis)
 # -----------------------------------------------------------------------------
-st.markdown('<div class="section-header">🔍 Filter Workspace</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-header"><i class="fa-solid fa-magnifying-glass" style="color:#0EA5E9;"></i>Filter Workspace</div>', unsafe_allow_html=True)
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
@@ -221,7 +212,7 @@ with col3:
     selected_trainer = st.selectbox("Select Trainer", options=trainer_options, label_visibility="collapsed")
 
 with col4:
-    st.markdown('<div class="filter-header"><i class="fa-solid fa-calendar-days icon-spacing"></i>Focused Target Date</div>', unsafe_allow_html=True)
+    st.markdown('<div class="filter-header"><i class="fa-solid fa-calendar-check icon-spacing"></i>Focused Target Date</div>', unsafe_allow_html=True)
     selected_date_focus = st.date_input("Target Date Selection", datetime.today().date(), label_visibility="collapsed")
 
 # Data processing and focal binding matrices
@@ -243,9 +234,9 @@ total_completed = filtered_df['Completed Hours'].sum() if is_data_loaded else 0
 total_remaining = filtered_df['Remaining Hours'].sum() if is_data_loaded else 0
 task_count = len(filtered_df) if is_data_loaded else 0
 
-# Inject Balanced KPI Sidebar
+# Inject Balanced KPI Sidebar (No Emojis)
 st.sidebar.markdown("---")
-st.sidebar.markdown("### 📊 KPI Performance Logs")
+st.sidebar.markdown('### <i class="fa-solid fa-chart-simple" style="color:#0EA5E9; margin-right:8px;"></i>KPI Performance Logs', unsafe_allow_html=True)
 st.sidebar.markdown(f"""
 <div class="kpi-card">
     <div class="kpi-title"><i class="fa-solid fa-list-check" style="color:#0EA5E9;"></i> Total Tasks</div>
@@ -269,7 +260,7 @@ st.sidebar.markdown(f"""
 # SCHEDULE MATRIX CALENDAR
 # -----------------------------------------------------------------------------
 st.write("---")
-st.markdown('<div class="section-header">🗓️ Schedule Matrix Calendar</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-header"><i class="fa-solid fa-calendar-days" style="color:#0EA5E9;"></i>Schedule Matrix Calendar</div>', unsafe_allow_html=True)
 
 calendar_events = []
 if is_data_loaded:
@@ -309,7 +300,7 @@ calendar(events=calendar_events, options=calendar_options, key=f"cal_state_{cale
 # TIMELINE DEEP DIVE LOGS
 # -----------------------------------------------------------------------------
 st.write("---")
-st.markdown(f'<div class="section-header">📋 Day Timeline Logs: {selected_date_focus.strftime("%B %d, %Y")}</div>', unsafe_allow_html=True)
+st.markdown(f'<div class="section-header"><i class="fa-solid fa-list-ol" style="color:#0EA5E9;"></i>Day Timeline Logs: {selected_date_focus.strftime("%B %d, %Y")}</div>', unsafe_allow_html=True)
 
 if is_data_loaded and not todo_df.empty:
     for idx, row in todo_df.iterrows():
@@ -322,7 +313,7 @@ if is_data_loaded and not todo_df.empty:
             
         st.markdown(f"""
         <div class="todo-box">
-            <div class="todo-title">📌 {row['Task Name']}</div>
+            <div class="todo-title"><i class="fa-solid fa-thumbtack" style="color:#0EA5E9; font-size:14px;"></i> {row['Task Name']}</div>
             <div class="todo-meta"><b>University:</b> {row['University']} &nbsp;|&nbsp; <b>Course:</b> {row['Course']} &nbsp;|&nbsp; <b>Instructor:</b> {row['Trainer']}</div>
             <div class="todo-status" style="color: {label_color};"><span style="color:{dot_color};">●</span> {status_text} — ({int(row['Completed Hours'])}h Completed / {int(row['Remaining Hours'])}h Remaining)</div>
         </div>
@@ -334,7 +325,7 @@ else:
 # GRAPHICAL DATA VISUALIZATIONS
 # -----------------------------------------------------------------------------
 st.write("---")
-st.markdown('<div class="section-header">📊 Visual Data Analytics</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-header"><i class="fa-solid fa-chart-pie" style="color:#0EA5E9;"></i>Visual Data Analytics</div>', unsafe_allow_html=True)
 dash_col1, dash_col2 = st.columns(2)
 
 with dash_col1:
