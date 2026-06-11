@@ -609,7 +609,6 @@ Start Date: {row['Start'].strftime('%d-%b-%Y')}
 End Date: {row['End'].strftime('%d-%b-%Y')}
 
 Delivery Mode: {row.get('Delivery mode','N/A')}
-"""
 )
 
 # =====================================================
