@@ -526,6 +526,8 @@ for idx, row in filtered.iterrows():
     )
 
 # The dynamic key prevents calendar redraw lockups during multi-variable sidebar selection changes
+if filtered.empty:
+   st.warning("No records found. Calendar is showing today's date.")
 calendar_response = calendar(
     events=events,
     options={
