@@ -94,7 +94,7 @@ h2,h3,h4{
     background-color: var(--accent);
     color:white;
     border:none;
-    border-radius:10px;
+    border-radius:10px;   
     padding:0.5rem 1rem;
     font-weight:600;
     transition:0.3s;
@@ -575,7 +575,7 @@ st.divider()
 # EVENT CLICK DETAILS
 # ==========================================
 
-st.write(calendar_response)   # Temporary test
+#st.write(calendar_response) 
 
 if calendar_response and "eventClick" in calendar_response:
 
