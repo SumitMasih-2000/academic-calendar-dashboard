@@ -647,7 +647,7 @@ st.subheader("📋 Comprehensive Operations Registry")
 display_df = filtered.copy()
 
 # Format timestamps to a clean text date string layout before outputting
-if "Start" in display_df.columns:
+if "Start" in display_df.columns
     display_df["Start date"] = display_df["Start"].dt.strftime("%Y-%m-%d").fillna("Missing Date")
 if "Closing date" in display_df.columns:
     display_df["Closing date"] = display_df["End"].dt.strftime("%Y-%m-%d").fillna("Missing Date")
