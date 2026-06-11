@@ -398,10 +398,11 @@ if "Start" in filtered.columns:
             calendar_focus_date = datetime.now().strftime("%Y-%m-%d")
 
         # Date Range Filter
-        # Date Range Filter
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("📅 Date Filters")
+
+# Date Range Filter
 
 if filtered.empty:
 
@@ -435,6 +436,7 @@ if len(selected_range) == 2 and not filtered.empty:
     ]
 
     calendar_focus_date = start_filter.strftime("%Y-%m-%d")
+   
         # Date Range Filter
 
         from datetime import datetime, date
