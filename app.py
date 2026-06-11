@@ -47,19 +47,18 @@ st.markdown("""
     .todo-meta { font-size: 13px; color: #64748B; margin: 0 0 6px 0; }
     .todo-status { font-size: 13px; font-weight: 500; margin: 0; }
     
-    /* Premium Minimalist KPI Cards */
+    /* Premium Minimalist KPI Cards (Sized down for Sidebar compatibility) */
     .kpi-card {
         background-color: #ffffff;
-        padding: 22px;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        padding: 14px;
+        border-radius: 10px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         border: 1px solid #E2E8F0;
-        text-align: center;
-        transition: transform 0.2s;
+        text-align: left;
+        margin-bottom: 10px;
     }
-    .kpi-card:hover { border-color: #CBD5E1; }
-    .kpi-title { font-size: 13px; color: #64748B; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-    .kpi-value { font-size: 32px; color: #0F172A; font-weight: 700; margin-top: 8px; }
+    .kpi-title { font-size: 11px; color: #64748B; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .kpi-value { font-size: 22px; color: #0F172A; font-weight: 700; margin-top: 4px; }
     
     /* Calendar UI custom colors match override */
     .fc-theme-standard .fc-scrollgrid { border-color: #E2E8F0 !important; }
@@ -141,11 +140,8 @@ def clean_and_map_dataframe(raw_df):
     return final_df
 
 # -----------------------------------------------------------------------------
-# 3. FILE IMPORT MANAGEMENT LOGIC
+# 3. SIDEBAR DATA MANAGEMENT & SIDEBAR KPIs
 # -----------------------------------------------------------------------------
-st.markdown('<div class="main-title">📅 Academic Calendar & Hours Dashboard</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-title">Drop your course Excel sheets to dynamically generate task calendars, manage timelines, and audit hours metrics.</div>', unsafe_allow_html=True)
-
 st.sidebar.header("📁 Data Management")
 uploaded_file = st.sidebar.file_uploader("Upload Excel File (.xlsx)", type=["xlsx"])
 
@@ -162,7 +158,13 @@ if uploaded_file is not None:
         df = get_empty_dataframe()
 else:
     df = get_empty_dataframe()
-    st.sidebar.info("Waiting for Excel data upload. Displaying clean calendar view.")
+    st.sidebar.info("Waiting for Excel data upload.")
+
+# -----------------------------------------------------------------------------
+# MAIN APP BODY HEADERS
+# -----------------------------------------------------------------------------
+st.markdown('<div class="main-title">📅 Academic Calendar & Hours Dashboard</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-title">Drop your course Excel sheets to dynamically generate task calendars, manage timelines, and audit hours metrics.</div>', unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
 # 4. FILTER MATRIX CONTROL GRID
@@ -213,6 +215,35 @@ if is_data_loaded:
 calendar_view_date = selected_date_focus.isoformat()
 todo_df = filtered_df[filtered_df["Date"] == selected_date_focus] if is_data_loaded else pd.DataFrame()
 
+# Calculate values for the KPIs
+total_allocated = filtered_df['Total Allocated Hours'].sum() if is_data_loaded else 0
+total_completed = filtered_df['Completed Hours'].sum() if is_data_loaded else 0
+total_remaining = filtered_df['Remaining Hours'].sum() if is_data_loaded else 0
+task_count = len(filtered_df) if is_data_loaded else 0
+
+# Inject KPIs into Sidebar directly beneath file uploader notifications
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 📊 KPI Performance Logs")
+
+st.sidebar.markdown(f"""
+<div class="kpi-card">
+    <div class="kpi-title"><i class="fa-solid fa-list-check" style="color:#0EA5E9;"></i> Total Tasks</div>
+    <div class="kpi-value">{task_count}</div>
+</div>
+<div class="kpi-card">
+    <div class="kpi-title"><i class="fa-solid fa-hourglass" style="color:#64748B;"></i> Allocated Hours</div>
+    <div class="kpi-value">{int(total_allocated)}h</div>
+</div>
+<div class="kpi-card">
+    <div class="kpi-title"><i class="fa-solid fa-circle-check" style="color:#10B981;"></i> Hours Completed</div>
+    <div class="kpi-value">{int(total_completed)}h</div>
+</div>
+<div class="kpi-card">
+    <div class="kpi-title"><i class="fa-solid fa-clock-rotate-left" style="color:#F43F5E;"></i> Hours Remaining</div>
+    <div class="kpi-value">{int(total_remaining)}h</div>
+</div>
+""", unsafe_allow_html=True)
+
 # -----------------------------------------------------------------------------
 # 6. CALENDAR VIEW SYSTEM (Auto-Focus Tracking Enabled)
 # -----------------------------------------------------------------------------
@@ -223,8 +254,6 @@ calendar_events = []
 if is_data_loaded:
     for idx, row in filtered_df.iterrows():
         event_title = f"{row['Task Name']} ({int(row['Completed Hours'])}h/{int(row['Total Allocated Hours'])}h)"
-        
-        # Color mapping to modern matching tones (Rose, Amber, Emerald)
         bg_color = "#10B981" if row['Remaining Hours'] <= 0 else "#F43F5E" if row['Completed Hours'] == 0 else "#F59E0B"
         
         calendar_events.append({
@@ -278,53 +307,11 @@ else:
     st.info(f"No tasks recorded for {selected_date_focus.strftime('%B %d, %Y')}.")
 
 # -----------------------------------------------------------------------------
-# 8. KPI PERFORMANCE DASHBOARD CENTER
+# 8. GRAPHICAL ANALYTICS SECTION (Maintains cleaner dual column visualization layout)
 # -----------------------------------------------------------------------------
 st.write("---")
-st.markdown('<div class="section-header">📊 KPI Executive Overview</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-header">📊 Visual Data Analytics</div>', unsafe_allow_html=True)
 
-total_allocated = filtered_df['Total Allocated Hours'].sum() if is_data_loaded else 0
-total_completed = filtered_df['Completed Hours'].sum() if is_data_loaded else 0
-total_remaining = filtered_df['Remaining Hours'].sum() if is_data_loaded else 0
-task_count = len(filtered_df) if is_data_loaded else 0
-
-kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns(4)
-
-with kpi_col1:
-    st.markdown(f"""
-    <div class="kpi-card">
-        <div class="kpi-title"><i class="fa-solid fa-list-check" style="color:#0EA5E9;"></i> Total Tasks</div>
-        <div class="kpi-value">{task_count}</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-with kpi_col2:
-    st.markdown(f"""
-    <div class="kpi-card">
-        <div class="kpi-title"><i class="fa-solid fa-hourglass" style="color:#64748B;"></i> Allocated Hours</div>
-        <div class="kpi-value">{int(total_allocated)}h</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-with kpi_col3:
-    st.markdown(f"""
-    <div class="kpi-card">
-        <div class="kpi-title"><i class="fa-solid fa-circle-check" style="color:#10B981;"></i> Hours Completed</div>
-        <div class="kpi-value">{int(total_completed)}h</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-with kpi_col4:
-    st.markdown(f"""
-    <div class="kpi-card">
-        <div class="kpi-title"><i class="fa-solid fa-clock-rotate-left" style="color:#F43F5E;"></i> Hours Remaining</div>
-        <div class="kpi-value">{int(total_remaining)}h</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-st.write("") 
-
-# Graphical Chart Visualizations matching color tokens
 dash_col1, dash_col2 = st.columns(2)
 
 with dash_col1:
