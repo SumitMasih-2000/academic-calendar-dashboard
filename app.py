@@ -8,13 +8,13 @@ import base64
 # Set page configuration to wide layout
 st.set_page_config(page_title="Academic Task & Hours Tracker", layout="wide")
 
-# Inject FontAwesome for the remaining filters (University, Date)
+# Inject FontAwesome for standard icons
 st.markdown(
     '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">',
     unsafe_allow_html=True
 )
 
-# Custom CSS to align custom image icons smoothly with text
+# Custom CSS for UI layout and icon sizing
 st.markdown("""
     <style>
     .filter-header { 
@@ -37,54 +37,100 @@ def get_image_base64(path):
     except FileNotFoundError:
         return ""
 
-# Convert images to base64 strings
+# Convert user icons to base64 strings
 course_icon_base64 = get_image_base64("image_2b21c2.png")
 trainer_icon_base64 = get_image_base64("image_2b217d.png")
 
 # -----------------------------------------------------------------------------
-# 1. SAMPLE DATA CREATION (Fallback if no file is uploaded)
+# 1. SAMPLE DATA GENERATOR (Dynamically matches Today's Date)
 # -----------------------------------------------------------------------------
 def get_sample_data():
+    today_str = datetime.today().date().isoformat()
     return pd.DataFrame({
-        "Task ID": [1, 2, 3, 4],
-        "Task Name": ["Data Science Lecture", "AI Assignment", "Web Dev Workshop", "Math Exam Prep"],
-        "University": ["Stanford", "MIT", "Stanford", "MIT"],
-        "Course": ["Computer Science", "Artificial Intelligence", "Web Development", "Mathematics"],
-        "Trainer": ["Dr. Smith", "Prof. Jones", "Alex Ray", "Dr. Alan"],
-        "Date": ["2026-06-11", "2026-06-12", "2026-06-11", "2026-06-15"],
-        "Total Allocated Hours": [10, 15, 8, 12],
-        "Completed Hours": [6, 15, 2, 0]
+        "Task ID": [1, 2],
+        "Task Name": ["Sample Task A (No File Uploaded)", "Sample Task B (No File Uploaded)"],
+        "University": ["Default University", "Default University"],
+        "Course": ["General Course", "General Course"],
+        "Trainer": ["Unassigned", "Unassigned"],
+        "Date": [today_str, today_str],
+        "Total Allocated Hours": [5, 10],
+        "Completed Hours": [2, 10]
     })
 
 # -----------------------------------------------------------------------------
-# 2. DATA LOADING & LIVE SYNC
+# 2. SMART COLUMN MAPPER (Prevents KeyErrors)
+# -----------------------------------------------------------------------------
+def clean_and_map_dataframe(raw_df):
+    processed_df = raw_df.copy()
+    processed_df.columns = processed_df.columns.astype(str).str.strip().str.lower()
+    
+    mapping_dictionary = {
+        'task id': ['task id', 'id', 'task_id', 'sr no', 'sr. no.'],
+        'task name': ['task name', 'task', 'title', 'event', 'assignment', 'task_name'],
+        'university': ['university', 'univ', 'college', 'institution', 'school'],
+        'course': ['course', 'subject', 'program', 'class'],
+        'trainer': ['trainer', 'instructor', 'teacher', 'professor', 'faculty', 'dr.'],
+        'date': ['date', 'task date', 'due date', 'schedule date', 'timeline', 'day'],
+        'total allocated hours': ['total allocated hours', 'total hours', 'allocated hours', 'hours', 'duration', 'total_hours'],
+        'completed hours': ['completed hours', 'hours completed', 'done', 'hours done', 'completed_hours']
+    }
+    
+    final_df = pd.DataFrame()
+    
+    for standard_key, variations in mapping_dictionary.items():
+        matched_col = None
+        for col in processed_df.columns:
+            if col in variations:
+                matched_col = col
+                break
+        
+        if matched_col is not None:
+            final_df[standard_key] = processed_df[matched_col]
+        else:
+            if standard_key == 'task id':
+                final_df[standard_key] = range(1, len(processed_df) + 1)
+            elif standard_key in ['total allocated hours', 'completed hours']:
+                final_df[standard_key] = 0
+            elif standard_key == 'date':
+                final_df[standard_key] = datetime.today().date()
+            else:
+                final_df[standard_key] = "N/A"
+                
+    final_df['date'] = pd.to_datetime(final_df['date'], errors='coerce').dt.date
+    final_df['date'] = final_df['date'].fillna(datetime.today().date())
+    
+    final_df['total allocated hours'] = pd.to_numeric(final_df['total allocated hours'], errors='coerce').fillna(0)
+    final_df['completed hours'] = pd.to_numeric(final_df['completed hours'], errors='coerce').fillna(0)
+    final_df['remaining hours'] = final_df['total allocated hours'] - final_df['completed hours']
+    
+    final_df.columns = final_df.columns.str.title()
+    return final_df
+
+# -----------------------------------------------------------------------------
+# 3. FILE UPLOADER & CORE SYNC
 # -----------------------------------------------------------------------------
 st.title("📅 Academic Calendar & Hours Dashboard")
-st.markdown("Upload your Excel schedule to dynamically populate the calendar and tracking metrics.")
+st.markdown("Upload an Excel schedule to dynamically populate the calendar dashboard layout.")
 
 st.sidebar.header("📁 Data Management")
 uploaded_file = st.sidebar.file_uploader("Upload Excel File (.xlsx)", type=["xlsx"])
 
 if uploaded_file is not None:
     try:
-        df = pd.read_excel(uploaded_file)
-        st.sidebar.success("Loaded live data successfully!")
+        raw_excel_df = pd.read_excel(uploaded_file)
+        df = clean_and_map_dataframe(raw_excel_df)
+        st.sidebar.success("Loaded and mapped file successfully!")
     except Exception as e:
-        st.sidebar.error(f"Error reading file: {e}")
+        st.sidebar.error(f"Error structuring your file data: {e}")
         df = get_sample_data()
+        df = clean_and_map_dataframe(df)
 else:
     df = get_sample_data()
-    st.sidebar.info("Showing sample data. Upload an Excel file to view your own schedule.")
-
-# Ensure proper data formatting
-df['Date'] = pd.to_datetime(df['Date']).dt.date
-df['Total Allocated Hours'] = pd.to_numeric(df['Total Allocated Hours'], errors='coerce').fillna(0)
-df['Completed Hours'] = pd.to_numeric(df['Completed Hours'], errors='coerce').fillna(0)
-df['Remaining Hours'] = df['Total Allocated Hours'] - df['Completed Hours']
-
+    df = clean_and_map_dataframe(df)
+    st.sidebar.info("No data uploaded. Displaying today's workspace schedule.")
 
 # -----------------------------------------------------------------------------
-# 3. INTERACTIVE FILTERS WITH CUSTOM IMAGE ICONS
+# 4. INTERACTIVE FILTERS GRID
 # -----------------------------------------------------------------------------
 st.write("---")
 st.markdown("### Filter Controls")
@@ -97,7 +143,6 @@ with col1:
     selected_univ = st.selectbox("Select University", options=univ_options, label_visibility="collapsed")
 
 with col2:
-    # course_icon_base64 used here for image_2b21c2.png
     if course_icon_base64:
         st.markdown(f'<div class="filter-header"><img src="data:image/png;base64,{course_icon_base64}" class="custom-icon"/>Course</div>', unsafe_allow_html=True)
     else:
@@ -108,7 +153,6 @@ with col2:
     selected_course = st.selectbox("Select Course", options=course_options, label_visibility="collapsed")
 
 with col3:
-    # trainer_icon_base64 used here for image_2b217d.png
     if trainer_icon_base64:
         st.markdown(f'<div class="filter-header"><img src="data:image/png;base64,{trainer_icon_base64}" class="custom-icon"/>Trainer</div>', unsafe_allow_html=True)
     else:
@@ -117,94 +161,3 @@ with col3:
     filtered_trainers = filtered_courses if selected_course == "All" else filtered_courses[filtered_courses["Course"] == selected_course]
     trainer_options = ["All"] + sorted(filtered_trainers["Trainer"].dropna().unique().tolist())
     selected_trainer = st.selectbox("Select Trainer", options=trainer_options, label_visibility="collapsed")
-
-with col4:
-    st.markdown('<div class="filter-header"><i class="fa-solid fa-calendar-days icon-spacing"></i>Date Range</div>', unsafe_allow_html=True)
-    min_date = df['Date'].min() if not df.empty else datetime.today().date()
-    max_date = df['Date'].max() if not df.empty else datetime.today().date()
-    
-    if min_date == max_date:
-        selected_date_range = st.date_input("Select Dates", [min_date], label_visibility="collapsed")
-    else:
-        selected_date_range = st.date_input("Select Dates", [min_date, max_date], label_visibility="collapsed")
-
-# Apply Filters
-filtered_df = df.copy()
-if selected_univ != "All":
-    filtered_df = filtered_df[filtered_df["University"] == selected_univ]
-if selected_course != "All":
-    filtered_df = filtered_df[filtered_df["Course"] == selected_course]
-if selected_trainer != "All":
-    filtered_df = filtered_df[filtered_df["Trainer"] == selected_trainer]
-if isinstance(selected_date_range, list) or isinstance(selected_date_range, tuple):
-    if len(selected_date_range) == 2:
-        filtered_df = filtered_df[(filtered_df["Date"] >= selected_date_range[0]) & (filtered_df["Date"] <= selected_date_range[1])]
-
-
-# -----------------------------------------------------------------------------
-# 4. CALENDAR UI COMPONENT
-# -----------------------------------------------------------------------------
-st.write("---")
-
-calendar_events = []
-for idx, row in filtered_df.iterrows():
-    event_title = f"{row['Task Name']} ({row['Completed Hours']}h / {row['Total Allocated Hours']}h)"
-    
-    calendar_events.append({
-        "id": str(row['Task ID']),
-        "title": event_title,
-        "start": row['Date'].isoformat(),
-        "end": row['Date'].isoformat(),
-        "backgroundColor": "#2E7D32" if row['Remaining Hours'] <= 0 else "#D32F2F" if row['Completed Hours'] == 0 else "#F57C00",
-        "borderColor": "#333333"
-    })
-
-calendar_options = {
-    "headerToolbar": {
-        "left": "prev,next today",
-        "center": "title",
-        "right": "dayGridMonth,timeGridWeek,timeGridDay",
-    },
-    "initialView": "dayGridMonth",
-    "selectable": True,
-}
-
-st.subheader("🗓️ Tasks Schedule Calendar")
-st.markdown("*Color Legend:  🔴 Not Started | 🟡 In Progress | 🟢 Completed*")
-calendar(events=calendar_events, options=calendar_options, key="streamlit_calendar")
-
-
-# -----------------------------------------------------------------------------
-# 5. METRICS & VISUAL DASHBOARD
-# -----------------------------------------------------------------------------
-st.write("---")
-st.subheader("📊 Performance & Hours Overview Dashboard")
-
-total_allocated = filtered_df['Total Allocated Hours'].sum()
-total_completed = filtered_df['Completed Hours'].sum()
-total_remaining = filtered_df['Remaining Hours'].sum()
-
-m_col1, m_col2, m_col3, m_col4 = st.columns(4)
-with m_col1:
-    st.metric(label="Total Assigned Tasks", value=len(filtered_df))
-with m_col2:
-    st.metric(label="Allocated Hours Total", value=f"{total_allocated} hrs")
-with m_col3:
-    st.metric(label="Completed Hours ✅", value=f"{total_completed} hrs")
-with m_col4:
-    st.metric(label="Remaining Hours ⏳", value=f"{total_remaining} hrs")
-
-dash_col1, dash_col2 = st.columns(2)
-
-with dash_col1:
-    st.markdown("#### Hours breakdown by Task")
-    if not filtered_df.empty:
-        melted_df = filtered_df.melt(id_vars=["Task Name"], value_vars=["Completed Hours", "Remaining Hours"], var_name="Hour Status", value_name="Hours")
-        fig_bar = px.bar(melted_df, x="Task Name", y="Hours", color="Hour Status", barmode="group", color_discrete_map={"Completed Hours": "#2E7D32", "Remaining Hours": "#D32F2F"})
-        st.plotly_chart(fig_bar, use_container_width=True)
-
-with dash_col2:
-    st.markdown("#### General Completion Progress Ratio")
-    if not filtered_df.empty and total_allocated > 0:
-        fig_pie = px.pie(names=["Completed Hours", "Remaining Hours"], values=[total_completed, total_remaining], color=["Completed Hours", "Remaining Hours"], color_discrete_map={"Completed Hours": "#2E7D32", "Remaining Hours": "#D32F2F"}, hole=0.4)
-        st.plotly_chart(fig_pie, use_container_width=True)
