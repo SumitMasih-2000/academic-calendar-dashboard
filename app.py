@@ -160,4 +160,121 @@ with col2:
 
 with col3:
     if trainer_icon_base64:
-        st.markdown(f'<div class="filter-header"><img src="data:image/png;base64,{trainer_icon_base64}" class="custom
+        st.markdown(f'<div class="filter-header"><img src="data:image/png;base64,{trainer_icon_base64}" class="custom-icon"/>Trainer</div>', unsafe_allow_html=True)
+    else:
+        st.markdown('<div class="filter-header"><i class="fa-solid fa-chalkboard-user icon-spacing"></i>Trainer</div>', unsafe_allow_html=True)
+    filtered_trainers_df = filtered_courses_df if selected_course == "All" else filtered_courses_df[filtered_courses_df["Course"] == selected_course]
+    trainer_options = ["All"] + sorted([x for x in filtered_trainers_df["Trainer"].unique() if x != "nan"])
+    selected_trainer = st.selectbox("Select Trainer", options=trainer_options)
+
+with col4:
+    st.markdown('<div class="filter-header"><i class="fa-solid fa-calendar-days icon-spacing"></i>Focused Target Date</div>', unsafe_allow_html=True)
+    # Pull date range limits dynamically
+    default_date_focus = df['Date'].min() if not df.empty else datetime.today().date()
+    selected_date_focus = st.date_input("Target Date Selection", default_date_focus)
+
+# -----------------------------------------------------------------------------
+# 5. DYNAMIC DATA AND FOCUS BINDING SYSTEM
+# -----------------------------------------------------------------------------
+filtered_df = df.copy()
+if selected_univ != "All":
+    filtered_df = filtered_df[filtered_df["University"] == selected_univ]
+if selected_course != "All":
+    filtered_df = filtered_df[filtered_df["Course"] == selected_course]
+if selected_trainer != "All":
+    filtered_df = filtered_df[filtered_df["Trainer"] == selected_trainer]
+
+# The app automatically shifts the calendar view to match this date selection
+calendar_view_date = selected_date_focus.isoformat()
+
+# Filter specific to target focus selection for To-Do List display calculations
+todo_df = filtered_df[filtered_df["Date"] == selected_date_focus]
+
+# -----------------------------------------------------------------------------
+# 6. CALENDAR VIEW SYSTEM (Auto-Focus Tracking Enablement)
+# -----------------------------------------------------------------------------
+st.write("---")
+st.subheader("🗓️ Tasks Schedule Calendar")
+
+calendar_events = []
+for idx, row in filtered_df.iterrows():
+    event_title = f"{row['Task Name']} ({int(row['Completed Hours'])}h / {int(row['Total Allocated Hours'])}h)"
+    calendar_events.append({
+        "id": str(row['Task Id']),
+        "title": event_title,
+        "start": row['Date'].isoformat(),
+        "end": row['Date'].isoformat(),
+        "backgroundColor": "#2E7D32" if row['Remaining Hours'] <= 0 else "#D32F2F" if row['Completed Hours'] == 0 else "#F57C00",
+        "borderColor": "#333333"
+    })
+
+# Setting initialDate dynamically forces calendar tracking to change instantly
+calendar_options = {
+    "headerToolbar": {
+        "left": "prev,next today",
+        "center": "title",
+        "right": "dayGridMonth,timeGridWeek,timeGridDay",
+    },
+    "initialView": "dayGridMonth",
+    "initialDate": calendar_view_date,
+    "selectable": True,
+}
+
+st.markdown("*Color Legend:  🔴 Not Started | 🟡 In Progress | 🟢 Completed*")
+# Using combined variable string names resets caching frames natively during changes
+calendar(events=calendar_events, options=calendar_options, key=f"cal_state_{calendar_view_date}_{len(calendar_events)}")
+
+# -----------------------------------------------------------------------------
+# 7. DYNAMIC LIVE TARGET TO-DO LIST (Displays tasks under selected date)
+# -----------------------------------------------------------------------------
+st.write("---")
+st.subheader(f"📋 Live To-Do List Tasks for: {selected_date_focus.strftime('%B %d, %Y')}")
+
+if not todo_df.empty:
+    for idx, row in todo_df.iterrows():
+        status_label = "🟢 Completed" if row['Remaining Hours'] <= 0 else "🔴 Not Started" if row['Completed Hours'] == 0 else "🟡 In Progress"
+        st.markdown(f"""
+        <div class="todo-box">
+            <h4>📌 {row['Task Name']}</h4>
+            <p><b>🏫 University:</b> {row['University']} | <b>📖 Course:</b> {row['Course']} | <b>👨‍🏫 Trainer:</b> {row['Trainer']}</p>
+            <p><b>⏱️ Status:</b> {status_label} — ({int(row['Completed Hours'])} Hours Completed / {int(row['Remaining Hours'])} Hours Remaining)</p>
+        </div>
+        """, unsafe_allow_html=True)
+else:
+    st.info(f"No tasks scheduled on {selected_date_focus}. Select another target date or upload new dataset entries.")
+
+# -----------------------------------------------------------------------------
+# 8. ANALYTICS METRICS DASHBOARD SYSTEM
+# -----------------------------------------------------------------------------
+st.write("---")
+st.subheader("📊 Performance & Hours Overview Dashboard")
+
+data_scope = filtered_df if not filtered_df.empty else df
+
+total_allocated = data_scope['Total Allocated Hours'].sum()
+total_completed = data_scope['Completed Hours'].sum()
+total_remaining = data_scope['Remaining Hours'].sum()
+
+m_col1, m_col2, m_col3, m_col4 = st.columns(4)
+with m_col1:
+    st.metric(label="Total Tracked Tasks", value=len(data_scope))
+with m_col2:
+    st.metric(label="Allocated Hours Total", value=f"{int(total_allocated)} hrs")
+with m_col3:
+    st.metric(label="Completed Hours ✅", value=f"{int(total_completed)} hrs")
+with m_col4:
+    st.metric(label="Remaining Hours ⏳", value=f"{int(total_remaining)} hrs")
+
+dash_col1, dash_col2 = st.columns(2)
+
+with dash_col1:
+    st.markdown("#### Hours breakdown by Task")
+    melted_df = data_scope.melt(id_vars=["Task Name"], value_vars=["Completed Hours", "Remaining Hours"], var_name="Hour Status", value_name="Hours")
+    fig_bar = px.bar(melted_df, x="Task Name", y="Hours", color="Hour Status", barmode="group", color_discrete_map={"Completed Hours": "#2E7D32", "Remaining Hours": "#D32F2F"})
+    st.plotly_chart(fig_bar, use_container_width=True)
+
+with dash_col2:
+    st.markdown("#### General Completion Progress Ratio")
+    if total_allocated > 0:
+        fig_pie = px.pie(names=["Completed Hours", "Remaining Hours"], values=[total_completed, total_remaining], color=["Completed Hours", "Remaining Hours"], color_discrete_map={"Completed Hours": "#2E7D32", "Remaining Hours": "#D32F2F"}, hole=0.4)
+        st.plotly_chart(fig_pie, use_container_width=True)
