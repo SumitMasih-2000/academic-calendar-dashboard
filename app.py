@@ -435,8 +435,6 @@ if len(selected_range) == 2 and not filtered.empty:
     ]
 
     calendar_focus_date = start_filter.strftime("%Y-%m-%d")
-                # Calendar jumps to selected range start
-                calendar_focus_date = start_filter.strftime("%Y-%m-%d")
         # Date Range Filter
 
         from datetime import datetime, date
