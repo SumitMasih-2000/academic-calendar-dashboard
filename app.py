@@ -10,107 +10,190 @@ import re
 # =====================================================
 # 1. PAGE LAYOUT CONFIGURATION
 # =====================================================
-st.set_page_config(
-    page_title="Academic Calendar Dashboard",
-    page_icon="📅",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
-# Premium executive high-contrast custom dashboard presentation styles
 st.markdown("""
 <style>
 
-/* Main Background */
-.stApp {
-    background-color: #F4F7FC;
+/* ==============================
+   EXECUTIVE BLUE THEME
+   ============================== */
+
+:root{
+    --bg:#F8FAFC;
+    --sidebar:#1E3A8A;
+    --accent:#2563EB;
+    --hover:#1D4ED8;
+    --card:#FFFFFF;
+    --text:#0F172A;
+}
+
+/* Main App */
+.stApp{
+    background-color: var(--bg);
 }
 
 /* Sidebar */
-[data-testid="stSidebar"] {
-    background: #0F172A;
+[data-testid="stSidebar"]{
+    background: var(--sidebar);
 }
 
-[data-testid="stSidebar"] * {
-    color: white !important;
+[data-testid="stSidebar"] *{
+    color:white !important;
 }
 
-/* Keep dropdown text readable */
-[data-testid="stSidebar"] div[data-baseweb="select"] * {
-    color: black !important;
+/* Keep dropdown text visible */
+[data-testid="stSidebar"] div[data-baseweb="select"] *{
+    color:black !important;
 }
 
 /* KPI Cards */
-div[data-testid="metric-container"] {
-    background: white;
+div[data-testid="metric-container"]{
+    background: var(--card);
     padding: 18px;
     border-radius: 15px;
-    border-left: 5px solid #14B8A6;
+    border-left: 6px solid var(--accent);
     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
+/* KPI Labels */
+[data-testid="metric-container"] label{
+    color: var(--text) !important;
+    font-weight:600;
+}
+
+/* KPI Values */
+[data-testid="stMetricValue"]{
+    color: var(--text);
+    font-weight:700;
+}
+
 /* Headers */
-h1, h2, h3 {
-    color: #0F172A;
+h1{
+    color: var(--text);
+    font-weight:700;
+}
+
+h2,h3,h4{
+    color: var(--text);
+    font-weight:600;
 }
 
 /* Buttons */
-.stButton > button {
-    background-color: #14B8A6;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-weight: 600;
+.stButton > button{
+    background-color: var(--accent);
+    color:white;
+    border:none;
+    border-radius:10px;
+    padding:0.5rem 1rem;
+    font-weight:600;
+    transition:0.3s;
 }
 
-.stButton > button:hover {
-    background-color: #0F766E;
-    color: white;
+.stButton > button:hover{
+    background-color: var(--hover);
+    color:white;
 }
 
 /* Download Button */
-.stDownloadButton > button {
-    background-color: #14B8A6;
-    color: white;
-    border-radius: 8px;
+.stDownloadButton > button{
+    background-color: var(--accent);
+    color:white;
+    border:none;
+    border-radius:10px;
+    font-weight:600;
 }
 
-/* Data Editor / Tables */
-[data-testid="stDataFrame"] {
-    border-radius: 12px;
-    overflow: hidden;
+.stDownloadButton > button:hover{
+    background-color: var(--hover);
 }
 
-/* Calendar Events */
-.fc-event {
-    border: none !important;
-    border-radius: 8px !important;
-    font-weight: 600;
-    padding: 2px;
+/* DataFrames */
+[data-testid="stDataFrame"]{
+    border-radius:12px;
+    overflow:hidden;
+    border:1px solid #E2E8F0;
 }
 
-/* Info Boxes */
-[data-testid="stAlert"] {
-    border-radius: 12px;
+/* Alerts */
+[data-testid="stAlert"]{
+    border-radius:12px;
 }
 
 /* Tabs */
-button[data-baseweb="tab"] {
-    font-weight: 600;
+button[data-baseweb="tab"]{
+    font-weight:600;
 }
 
-/* Metric Labels */
-[data-testid="metric-container"] label {
-    color: #0F172A !important;
+/* Calendar Events */
+.fc-event{
+    border:none !important;
+    border-radius:8px !important;
+    font-weight:600;
+    padding:2px;
 }
 
-/* Metric Values */
-[data-testid="metric-container"] [data-testid="stMetricValue"] {
-    color: #0F172A;
+/* Calendar Toolbar */
+.fc-toolbar-title{
+    color: var(--text) !important;
+    font-weight:700 !important;
+}
+
+/* Calendar Buttons */
+.fc-button{
+    background: var(--accent) !important;
+    border:none !important;
+}
+
+.fc-button:hover{
+    background: var(--hover) !important;
+}
+
+/* Select Boxes */
+div[data-baseweb="select"]{
+    border-radius:10px;
+}
+
+/* Multiselect */
+.stMultiSelect{
+    border-radius:10px;
+}
+
+/* Expander */
+.streamlit-expanderHeader{
+    font-weight:600;
+}
+
+/* Horizontal Line */
+hr{
+    border:1px solid #E2E8F0;
+}
+
+/* Plotly Charts */
+.js-plotly-plot{
+    border-radius:12px;
+    background:white;
+    padding:10px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar{
+    width:8px;
+}
+
+::-webkit-scrollbar-track{
+    background:#E2E8F0;
+}
+
+::-webkit-scrollbar-thumb{
+    background:#94A3B8;
+    border-radius:10px;
+}
+
+::-webkit-scrollbar-thumb:hover{
+    background:#64748B;
 }
 
 </style>
 """, unsafe_allow_html=True)
-
 # =====================================================
 # 2. DATA INGESTION MATRIX
 # =====================================================
