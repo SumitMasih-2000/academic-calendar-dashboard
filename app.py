@@ -398,25 +398,43 @@ if "Start" in filtered.columns:
             calendar_focus_date = datetime.now().strftime("%Y-%m-%d")
 
         # Date Range Filter
-        if not filtered.empty:
-           
-            selected_range = st.sidebar.date_input(
-                "Select Date Range",
-                value=(min_date, max_date),
-                min_value=min_date,
-                max_value=max_date,
-                key="date_range_filter"
-            )
+        # Date Range Filter
 
-            if len(selected_range) == 2:
+st.sidebar.markdown("---")
+st.sidebar.subheader("📅 Date Filters")
 
-                start_filter, end_filter = selected_range
+if filtered.empty:
 
-                filtered = filtered[
-                    (filtered["Start"].dt.date >= start_filter) &
-                    (filtered["Start"].dt.date <= end_filter)
-                ]
+    min_date = datetime.now().date()
+    max_date = datetime.now().date()
 
+    calendar_focus_date = datetime.now().strftime("%Y-%m-%d")
+
+else:
+
+    min_date = filtered["Start"].min().date()
+    max_date = filtered["Start"].max().date()
+
+    calendar_focus_date = filtered["Start"].min().strftime("%Y-%m-%d")
+
+selected_range = st.sidebar.date_input(
+    "Select Date Range",
+    value=(min_date, max_date),
+    min_value=min_date,
+    max_value=max_date,
+    key="date_range_filter"
+)
+
+if len(selected_range) == 2 and not filtered.empty:
+
+    start_filter, end_filter = selected_range
+
+    filtered = filtered[
+        (filtered["Start"].dt.date >= start_filter) &
+        (filtered["Start"].dt.date <= end_filter)
+    ]
+
+    calendar_focus_date = start_filter.strftime("%Y-%m-%d")
                 # Calendar jumps to selected range start
                 calendar_focus_date = start_filter.strftime("%Y-%m-%d")
         # Date Range Filter
