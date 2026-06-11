@@ -182,4 +182,187 @@ else:
 if main_calendar_base64:
     st.markdown(f"""
     <div class="title-container">
-        <img src="data:image/png;base64,{main_calendar_base64}" class
+        <img src="data:image/png;base64,{main_calendar_base64}" class="main-header-icon"/>
+        <div class="main-title">Academic Calendar & Hours Dashboard</div>
+    </div>
+    """, unsafe_allow_html=True)
+else:
+    st.markdown('<div class="title-container"><div class="main-title">📅 Academic Calendar & Hours Dashboard</div></div>', unsafe_allow_html=True)
+
+st.markdown('<div class="sub-title">This dashboard automatically updates live whenever changes are saved directly to your local Excel file.</div>', unsafe_allow_html=True)
+
+# -----------------------------------------------------------------------------
+# FILTER WORKSPACE INTERFACE
+# -----------------------------------------------------------------------------
+st.markdown('<div class="section-header">🔍 Filter Workspace</div>', unsafe_allow_html=True)
+col1, col2, col3, col4 = st.columns(4)
+
+with col1:
+    st.markdown('<div class="filter-header"><i class="fa-solid fa-university icon-spacing"></i>University</div>', unsafe_allow_html=True)
+    univ_options = ["All"] + sorted([x for x in df["University"].unique() if x != "nan"]) if is_data_loaded else ["All"]
+    selected_univ = st.selectbox("Select University", options=univ_options, label_visibility="collapsed")
+
+with col2:
+    if course_icon_base64:
+        st.markdown(f'<div class="filter-header"><img src="data:image/png;base64,{course_icon_base64}" class="custom-icon"/>Course</div>', unsafe_allow_html=True)
+    else:
+        st.markdown('<div class="filter-header"><i class="fa-solid fa-book icon-spacing"></i>Course</div>', unsafe_allow_html=True)
+    filtered_courses_df = df if selected_univ == "All" else df[df["University"] == selected_univ]
+    course_options = ["All"] + sorted([x for x in filtered_courses_df["Course"].unique() if x != "nan"]) if is_data_loaded else ["All"]
+    selected_course = st.selectbox("Select Course", options=course_options, label_visibility="collapsed")
+
+with col3:
+    if trainer_icon_base64:
+        st.markdown(f'<div class="filter-header"><img src="data:image/png;base64,{trainer_icon_base64}" class="custom-icon"/>Trainer</div>', unsafe_allow_html=True)
+    else:
+        st.markdown('<div class="filter-header"><i class="fa-solid fa-chalkboard-user icon-spacing"></i>Trainer</div>', unsafe_allow_html=True)
+    filtered_trainers_df = filtered_courses_df if selected_course == "All" else filtered_courses_df[filtered_courses_df["Course"] == selected_course]
+    trainer_options = ["All"] + sorted([x for x in filtered_trainers_df["Trainer"].unique() if x != "nan"]) if is_data_loaded else ["All"]
+    selected_trainer = st.selectbox("Select Trainer", options=trainer_options, label_visibility="collapsed")
+
+with col4:
+    st.markdown('<div class="filter-header"><i class="fa-solid fa-calendar-days icon-spacing"></i>Focused Target Date</div>', unsafe_allow_html=True)
+    selected_date_focus = st.date_input("Target Date Selection", datetime.today().date(), label_visibility="collapsed")
+
+# Data processing and focal binding matrices
+filtered_df = df.copy()
+if is_data_loaded:
+    if selected_univ != "All":
+        filtered_df = filtered_df[filtered_df["University"] == selected_univ]
+    if selected_course != "All":
+        filtered_df = filtered_df[filtered_df["Course"] == selected_course]
+    if selected_trainer != "All":
+        filtered_df = filtered_df[filtered_df["Trainer"] == selected_trainer]
+
+calendar_view_date = selected_date_focus.isoformat()
+todo_df = filtered_df[filtered_df["Date"] == selected_date_focus] if is_data_loaded else pd.DataFrame()
+
+# Compute aggregate values
+total_allocated = filtered_df['Total Allocated Hours'].sum() if is_data_loaded else 0
+total_completed = filtered_df['Completed Hours'].sum() if is_data_loaded else 0
+total_remaining = filtered_df['Remaining Hours'].sum() if is_data_loaded else 0
+task_count = len(filtered_df) if is_data_loaded else 0
+
+# Inject Balanced KPI Sidebar
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 📊 KPI Performance Logs")
+st.sidebar.markdown(f"""
+<div class="kpi-card">
+    <div class="kpi-title"><i class="fa-solid fa-list-check" style="color:#0EA5E9;"></i> Total Tasks</div>
+    <div class="kpi-value">{task_count}</div>
+</div>
+<div class="kpi-card">
+    <div class="kpi-title"><i class="fa-solid fa-hourglass" style="color:#64748B;"></i> Allocated Hours</div>
+    <div class="kpi-value">{int(total_allocated)}h</div>
+</div>
+<div class="kpi-card">
+    <div class="kpi-title"><i class="fa-solid fa-circle-check" style="color:#10B981;"></i> Hours Completed</div>
+    <div class="kpi-value">{int(total_completed)}h</div>
+</div>
+<div class="kpi-card">
+    <div class="kpi-title"><i class="fa-solid fa-clock-rotate-left" style="color:#F43F5E;"></i> Hours Remaining</div>
+    <div class="kpi-value">{int(total_remaining)}h</div>
+</div>
+""", unsafe_allow_html=True)
+
+# -----------------------------------------------------------------------------
+# SCHEDULE MATRIX CALENDAR
+# -----------------------------------------------------------------------------
+st.write("---")
+st.markdown('<div class="section-header">🗓️ Schedule Matrix Calendar</div>', unsafe_allow_html=True)
+
+calendar_events = []
+if is_data_loaded:
+    for idx, row in filtered_df.iterrows():
+        event_title = f"{row['Task Name']} ({int(row['Completed Hours'])}h/{int(row['Total Allocated Hours'])}h)"
+        
+        # Mapping to premium soft color scheme
+        bg_color = "#6EE7B7" if row['Remaining Hours'] <= 0 else "#FDA4AF" if row['Completed Hours'] == 0 else "#FDE047"
+        text_color = "#064E3B" if row['Remaining Hours'] <= 0 else "#9F1239" if row['Completed Hours'] == 0 else "#78350F"
+        
+        calendar_events.append({
+            "id": str(row['Task Id']),
+            "title": event_title,
+            "start": row['Date'].isoformat(),
+            "end": row['Date'].isoformat(),
+            "backgroundColor": bg_color,
+            "borderColor": bg_color,
+            "textColor": text_color
+        })
+
+calendar_options = {
+    "headerToolbar": {
+        "left": "prev,next today",
+        "center": "title",
+        "right": "dayGridMonth,timeGridWeek,timeGridDay",
+    },
+    "initialView": "dayGridMonth",
+    "initialDate": calendar_view_date,
+    "selectable": True,
+}
+
+st.markdown("<span style='color:#FDA4AF;font-weight:700;'>■</span> Not Started &nbsp;&nbsp;&nbsp;&nbsp; <span style='color:#FDE047;font-weight:700;'>■</span> In Progress &nbsp;&nbsp;&nbsp;&nbsp; <span style='color:#6EE7B7;font-weight:700;'>■</span> Fully Completed", unsafe_allow_html=True)
+st.write("")
+calendar(events=calendar_events, options=calendar_options, key=f"cal_state_{calendar_view_date}_{len(calendar_events)}")
+
+# -----------------------------------------------------------------------------
+# TIMELINE DEEP DIVE LOGS
+# -----------------------------------------------------------------------------
+st.write("---")
+st.markdown(f'<div class="section-header">📋 Day Timeline Logs: {selected_date_focus.strftime("%B %d, %Y")}</div>', unsafe_allow_html=True)
+
+if is_data_loaded and not todo_df.empty:
+    for idx, row in todo_df.iterrows():
+        if row['Remaining Hours'] <= 0:
+            status_text, dot_color, label_color = "Completed", "#10B981", "#064E3B"
+        elif row['Completed Hours'] == 0:
+            status_text, dot_color, label_color = "Not Started", "#F43F5E", "#9F1239"
+        else:
+            status_text, dot_color, label_color = "In Progress", "#F59E0B", "#78350F"
+            
+        st.markdown(f"""
+        <div class="todo-box">
+            <div class="todo-title">📌 {row['Task Name']}</div>
+            <div class="todo-meta"><b>University:</b> {row['University']} &nbsp;|&nbsp; <b>Course:</b> {row['Course']} &nbsp;|&nbsp; <b>Instructor:</b> {row['Trainer']}</div>
+            <div class="todo-status" style="color: {label_color};"><span style="color:{dot_color};">●</span> {status_text} — ({int(row['Completed Hours'])}h Completed / {int(row['Remaining Hours'])}h Remaining)</div>
+        </div>
+        """, unsafe_allow_html=True)
+else:
+    st.info(f"No tasks recorded for {selected_date_focus.strftime('%B %d, %Y')}.")
+
+# -----------------------------------------------------------------------------
+# GRAPHICAL DATA VISUALIZATIONS
+# -----------------------------------------------------------------------------
+st.write("---")
+st.markdown('<div class="section-header">📊 Visual Data Analytics</div>', unsafe_allow_html=True)
+dash_col1, dash_col2 = st.columns(2)
+
+with dash_col1:
+    st.markdown("#### Operational Breakdown by Task")
+    if is_data_loaded and not filtered_df.empty:
+        melted_df = filtered_df.melt(id_vars=["Task Name"], value_vars=["Completed Hours", "Remaining Hours"], var_name="Hour Status", value_name="Hours")
+        fig_bar = px.bar(
+            melted_df, x="Task Name", y="Hours", color="Hour Status", barmode="group",
+            color_discrete_map={"Completed Hours": "#6EE7B7", "Remaining Hours": "#FDA4AF"},
+            template="plotly_white"
+        )
+        fig_bar.update_layout(margin=dict(l=20, r=20, t=10, b=20), plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
+        st.plotly_chart(fig_bar, use_container_width=True)
+    else:
+        empty_fig = px.bar(title="Waiting for Data File...", template="plotly_white")
+        st.plotly_chart(empty_fig, use_container_width=True)
+
+with dash_col2:
+    st.markdown("#### Performance Metric Volume Allocation")
+    if is_data_loaded and total_allocated > 0:
+        fig_pie = px.pie(
+            names=["Completed Hours", "Remaining Hours"], values=[total_completed, total_remaining],
+            color=["Completed Hours", "Remaining Hours"],
+            color_discrete_map={"Completed Hours": "#6EE7B7", "Remaining Hours": "#FDA4AF"},
+            hole=0.45, template="plotly_white"
+        )
+        fig_pie.update_layout(margin=dict(l=20, r=20, t=10, b=20), paper_bgcolor='rgba(0,0,0,0)')
+        st.plotly_chart(fig_pie, use_container_width=True)
+    else:
+        empty_pie = px.pie(names=["No Logs Active"], values=[1], color_discrete_sequence=["#E2E8F0"], hole=0.45, template="plotly_white")
+        st.plotly_chart(empty_pie, use_container_width=True)
