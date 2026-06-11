@@ -11,23 +11,7 @@ import re
 # 1. PAGE LAYOUT CONFIGURATION
 # =====================================================
 st.markdown("""
-/* Selected filter chips */
-span[data-baseweb="tag"] {
-    background-color: #DBEAFE !important;
-    color: #1E3A8A !important;
-    border: 1px solid #2563EB !important;
-    font-weight: 600;
-}
 
-/* Text inside chips */
-span[data-baseweb="tag"] * {
-    color: #1E3A8A !important;
-}
-
-/* X button */
-span[data-baseweb="tag"] svg {
-    fill: #1E3A8A !important;
-}
 <style>
 
 /* ==============================
