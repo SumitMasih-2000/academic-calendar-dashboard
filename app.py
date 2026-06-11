@@ -423,23 +423,13 @@ if "Start" in filtered.columns:
                 # Calendar jumps to selected range start
                 calendar_focus_date = start_filter.strftime("%Y-%m-%d")
         # Date Range Filter
-        min_date = filtered["Start"].min().date()
-        max_date = filtered["Start"].max().date()
 
-        selected_range = st.sidebar.date_input(
-            "Select Date Range",
-            value=(min_date, max_date),
-            min_value=min_date,
-            max_value=max_date
-        )
+        from datetime import date
 
-        if len(selected_range) == 2:
-            start_filter, end_filter = selected_range
-
-            filtered = filtered[
-                (filtered["Start"].dt.date >= start_filter) &
-                (filtered["Start"].dt.date <= end_filter)
-            ]
+if filtered.empty:
+    calendar_focus_date = date.today().strftime("%Y-%m-%d")
+else:
+    calendar_focus_date = filtered["Start"].min().strftime("%Y-%m-%d")
 
 # =====================================================
 # 6. UNIVERSAL GLOBAL TEXT SEARCH STRATEGIES
