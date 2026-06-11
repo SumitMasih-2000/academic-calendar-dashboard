@@ -399,10 +399,7 @@ if "Start" in filtered.columns:
 
         # Date Range Filter
         if not filtered.empty:
-
-            min_date = filtered["Start"].min().date()
-            max_date = filtered["Start"].max().date()
-
+           
             selected_range = st.sidebar.date_input(
                 "Select Date Range",
                 value=(min_date, max_date),
