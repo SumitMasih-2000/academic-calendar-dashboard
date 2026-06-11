@@ -40,6 +40,17 @@ st.markdown("""
     color:white !important;
 }
 
+/* Upload Dataset Header */
+[data-testid="stSidebar"] h2 {
+    color: black !important;
+}
+
+/* File Uploader */
+[data-testid="stFileUploader"] * {
+    color: black !important;
+   
+}
+
 /* Keep dropdown text visible */
 [data-testid="stSidebar"] div[data-baseweb="select"] *{
     color:black !important;
@@ -295,7 +306,7 @@ df.loc[invalid_end_mask, "End"] = df.loc[invalid_end_mask, "Start"] + pd.Timedel
 # =====================================================
 # 5. AUTOMATED TRUE CASCADING FILTERS WINDOW
 # =====================================================
-st.sidebar.title("🎯 Cascading Filters Matrix")
+st.sidebar.title("🎯 Cascading Filters")
 
 exclude_cols = ["Start", "End", "Start date", "Closing date", "No of students", "Delivery hrs", "No. of batches", "Trainers required"]
 filter_columns = [c for c in df.columns if c not in exclude_cols]
